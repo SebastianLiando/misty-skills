@@ -1,0 +1,11 @@
+{
+  "Name": "Greet",
+  "UniqueId": "fd31a278-16f6-4df0-8394-596b054ad1a3",
+  "Description": "My skill is amazing!",
+  "StartupRules": ["Manual", "Robot"],
+  "Language": "javascript",
+  "BroadcastMode": "verbose",
+  "TimeoutInSeconds": 600,
+  "CleanupOnCancel": true,
+  "WriteToLog": false
+}

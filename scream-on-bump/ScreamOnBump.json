@@ -1,0 +1,14 @@
+{
+    "Name": "ScreamOnBump",
+    "UniqueId": "9ee80f5e-4bfe-4b48-92ef-3cea2ba2ad36",
+    "Description": "My skill is amazing!",
+    "StartupRules": [
+      "Manual",
+      "Robot"
+    ],
+    "Language": "javascript",
+    "BroadcastMode": "verbose",
+    "TimeoutInSeconds": 600,
+    "CleanupOnCancel": true,
+    "WriteToLog": false
+  }

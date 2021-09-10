@@ -1,0 +1,14 @@
+{
+    "Name": "ForwardOnce",
+    "UniqueId": "2b8d70ff-ca4e-45b8-973f-d9b14c684329",
+    "Description": "My skill is amazing!",
+    "StartupRules": [
+      "Manual",
+      "Robot"
+    ],
+    "Language": "javascript",
+    "BroadcastMode": "verbose",
+    "TimeoutInSeconds": 600,
+    "CleanupOnCancel": true,
+    "WriteToLog": false
+  }

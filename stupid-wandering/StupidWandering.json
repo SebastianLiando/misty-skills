@@ -1,0 +1,11 @@
+{
+  "Name": "StupidWandering",
+  "UniqueId": "b701cc86-abc0-4293-a688-040f6d2db5ce",
+  "Description": "My skill is amazing!",
+  "StartupRules": ["Manual", "Robot"],
+  "Language": "javascript",
+  "BroadcastMode": "verbose",
+  "TimeoutInSeconds": 600,
+  "CleanupOnCancel": true,
+  "WriteToLog": false
+}
