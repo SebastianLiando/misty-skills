@@ -2,9 +2,8 @@ misty.Debug("Starting skill - Pokedex");
 
 // Setup skill
 misty.UnregisterAllEvents();
-misty.DisplayText("");
-misty.DisplayImage("e_DefaultContent.jpg");
 misty.Set(_params.currentPokeId, _params.minPokeId);
+displayLoading();
 
 function getPokemonUrl(id) {
   return _params.baseUrl + id;
@@ -47,6 +46,11 @@ function _SendExternalRequest(data) {
       json.sprites.versions["generation-v"]["black-white"];
     const animatedSpriteUrl = blackWhiteSprites.animated["front_default"];
 
+    // Get the first type of the pokemon
+    const first_type = json.types[0].type.name;
+    misty.Debug("Pokemon type: " + first_type);
+
+    // Download the sprite
     misty.SendExternalRequest(
       "GET",
       animatedSpriteUrl,
@@ -69,7 +73,21 @@ function _OnPokeImageReady(data) {
   const pokeId = misty.Get(_params.currentPokeId);
   const imageName = `pokedex_${pokeId}.gif`;
 
-  // TODO: Change default image layer scaling settings
+  // Change scaling so that the image doesn't get cropped
+  misty.SetImageDisplaySettings(
+    null,
+    false,
+    false,
+    true,
+    1.0,
+    480, // Width
+    272, // Height
+    "Uniform", // Preserve aspect ratio, fill the layer
+    false, // Place on top
+    0, // Rotation
+    "Center", // Horizontal alignment
+    "Bottom" // Vertical alignment
+  );
   misty.DisplayImage(imageName);
 }
 
@@ -93,9 +111,64 @@ function _OnBump(data) {
 
   const updatedId = misty.Get(_params.currentPokeId);
 
+  displayLoading();
+
+  misty.SendExternalRequest("GET", getPokemonUrl(updatedId));
+}
+
+function displayLoading() {
+  // Reset the layer settings
+  misty.SetImageDisplaySettings(null, true);
   // Display loading animation
   misty.DisplayImage("a_Loading.gif");
   misty.DisplayText("Loading");
+}
 
-  misty.SendExternalRequest("GET", getPokemonUrl(updatedId));
+/**
+ * Returns the RGB color for the pokemon type. Source: https://www.epidemicjohto.com/t882-type-colors-hex-colors
+ *
+ * @param {String} type The pokemon type
+ * @returns An array with 3 element: r, g, b color if the type is valid, else null.
+ */
+function getTypeColor(type) {
+  switch (type.toLowerCase()) {
+    case "normal":
+      return [168, 167, 122];
+    case "fire":
+      return [238, 129, 43];
+    case "grass":
+      return [122, 199, 76];
+    case "water":
+      return [99, 144, 240];
+    case "electric":
+      return [247, 208, 44];
+    case "ice":
+      return [150, 217, 214];
+    case "fighting":
+      return [194, 46, 40];
+    case "poison":
+      return [163, 62, 161];
+    case "ground":
+      return [226, 191, 101];
+    case "flying":
+      return [169, 143, 243];
+    case "psychic":
+      return [249, 85, 135];
+    case "bug":
+      return [166, 185, 26];
+    case "rock":
+      return [182, 161, 54];
+    case "ghost":
+      return [115, 87, 151];
+    case "dragon":
+      return [111, 53, 252];
+    case "dark":
+      return [112, 87, 70];
+    case "steel":
+      return [183, 183, 206];
+    case "fairy":
+      return [214, 133, 173];
+    default:
+      return null;
+  }
 }
