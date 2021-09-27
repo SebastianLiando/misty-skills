@@ -2,7 +2,7 @@
 
 Misty goes forward until it bumps into an object.
 
-![Demo](demo/forward_once.gif)
+![Demo](ForwardOnce.gif)
 
 ### Misty Features Demonstrated
 
