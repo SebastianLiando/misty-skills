@@ -7,5 +7,12 @@
   "BroadcastMode": "verbose",
   "TimeoutInSeconds": 600,
   "CleanupOnCancel": true,
-  "WriteToLog": false
+  "WriteToLog": false,
+  "Parameters": {
+    "volume": 10,
+    "helloFace": "e_Admiration.jpg",
+    "goodbyeFace": "e_RemorseShame.jpg",
+    "helloSound": "s_Hello.wav",
+    "goodbyeSound": "s_Goodbye.wav"
+  }
 }

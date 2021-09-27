@@ -38,10 +38,10 @@ function _OnFaceRecognition(data) {
 
   if (!greeted && distance <= getDistanceToGreet()) {
     // If no user has been greeted, and a user enters into the vicinity of the robot
-    misty.PlayAudio("s_Hello.wav", 40);
+    misty.PlayAudio(_params.helloSound, _params.volume);
     misty.Set(getGreetStateKey(), true);
 
-    waveHappilyThenReset("e_Admiration.jpg");
+    waveHappilyThenReset(_params.helloFace);
   }
 
   if (greeted && distance < getDistanceToBye()) {
@@ -52,10 +52,10 @@ function _OnFaceRecognition(data) {
 }
 
 function _OnGoodbye(data) {
-  misty.PlayAudio("s_Goodbye.wav", 40);
+  misty.PlayAudio(_params.goodbyeSound, _params.volume);
   misty.Set(getGreetStateKey(), false);
 
-  waveHappilyThenReset("e_RemorseShame.jpg");
+  waveHappilyThenReset(_params.goodbyeFace);
 }
 
 function waveHappilyThenReset(face) {
@@ -74,4 +74,5 @@ function _OnReset(data) {
   misty.MoveArm("right", 50, 50, 0.2);
   misty.MoveHead(0, 0, 0);
   misty.ChangeLED(255, 255, 255);
+  misty.DisplayText("");
 }
