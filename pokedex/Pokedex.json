@@ -8,11 +8,14 @@
   "TimeoutInSeconds": 600,
   "CleanupOnCancel": true,
   "WriteToLog": false,
+  "SkillStorageLifetime": "LongTerm",
   "Parameters": {
     "baseUrl": "https://pokeapi.co/api/v2/pokemon/",
     "minPokeId": 1,
     "maxPokeId": 649,
     "currentPokeId": "currentPokeId",
-    "bumpEvent": "OnBump"
+    "pokedexCache": "pokedexCache",
+    "bumpEvent": "OnBump",
+    "pokeReadyEvent": "OnPokeReady"
   }
 }

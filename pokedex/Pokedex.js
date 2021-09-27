@@ -3,14 +3,106 @@ misty.Debug("Starting skill - Pokedex");
 // Setup skill
 misty.UnregisterAllEvents();
 misty.Set(_params.currentPokeId, _params.minPokeId);
-displayLoading();
 
+// Setup cache if not available
+if (getPokeCache().Message) {
+  misty.Debug("Creating cache");
+  misty.Set(_params.pokedexCache, JSON.stringify({}), true);
+}
+
+/**
+ * Returns the URL to PokeAPI for the given pokemon id.
+ * @param {int} id The pokemon id.
+ * @returns The PokeAPI URL for the pokemon.
+ */
 function getPokemonUrl(id) {
   return _params.baseUrl + id;
 }
 
-// Initial request
-misty.SendExternalRequest("GET", getPokemonUrl(_params.minPokeId));
+/**
+ * Returns the image file name for the given pokemon id.
+ * @param {int} id The pokemon id.
+ * @returns The image file name for the given pokemon id.
+ */
+function getPokemonImageName(id) {
+  return `pokedex_${id}.gif`;
+}
+
+/**
+ * Return all pokemon data stored in Misty's local storage.
+ * @returns The pokemon data in the cache.
+ */
+function getPokeCache() {
+  return JSON.parse(misty.Get(_params.pokedexCache));
+}
+
+/**
+ * Returns the pokemon data from cache.
+ *
+ * @param {int} id The pokemon id.
+ * @returns The pokemon data for the given id, or null if it is not in the cache.
+ */
+function getPokemonFromCache(id) {
+  const cache = getPokeCache();
+  const cachedIds = Object.keys(cache);
+
+  if (cachedIds.includes(String(id))) {
+    misty.Debug(`Found pokemon ${id} is in the cache`);
+    return cache[id];
+  } else {
+    return null;
+  }
+}
+
+/**
+ * Persists the pokemon data in Misty's local storage.
+ *
+ * @param {int} id The pokemon id.
+ * @param {object} pokeData The pokemon data.
+ */
+function savePokemonToCache(pokeData) {
+  // Get the id
+  const id = pokeData.id;
+
+  // Get the cache
+  const cache = getPokeCache();
+
+  // Save the data for the given id.
+  cache[String(id)] = pokeData;
+  misty.Set(_params.pokedexCache, JSON.stringify(cache), true);
+  misty.Debug(`Saved pokemon ${id} to cache`);
+}
+
+function getCurrentPokemonId() {
+  return misty.Get(_params.currentPokeId);
+}
+
+/**
+ * Set current pokemon id to the next pokemon.
+ */
+function nextPokemon() {
+  if (currentPokeId === _params.minPokeId) {
+    misty.Set(_params.currentPokeId, _params.maxPokeId);
+  } else {
+    misty.Set(_params.currentPokeId, currentPokeId - 1);
+  }
+}
+
+/**
+ * Set current pokemon id to the previous pokemon。
+ */
+function prevPokemon() {
+  if (currentPokeId === _params.maxPokeId) {
+    misty.Set(_params.currentPokeId, _params.minPokeId);
+  } else {
+    misty.Set(_params.currentPokeId, currentPokeId + 1);
+  }
+}
+
+misty.RegisterUserEvent(_params.pokeReadyEvent, true);
+
+// When the skill starts, display the first pokemon
+displayPokemon(_params.minPokeId);
 
 // Listen to bump as a control. Left bump to go previous. Right bump to go next.
 misty.AddReturnProperty(_params.bumpEvent, "sensorName");
@@ -23,23 +115,23 @@ misty.AddPropertyTest(
 );
 misty.RegisterEvent(_params.bumpEvent, "BumpSensor", 300, true);
 
+/**
+ * Callback for PokeAPI response.
+ * @param {*} data The response data.
+ */
 function _SendExternalRequest(data) {
   const status = data.Status;
 
   if (status === 3) {
+    misty.Debug("Successfully fetched data from PokeAPI");
     // Success
     const json = JSON.parse(data.Result.ResponseObject.Data);
 
-    // Ensure that current callback matches the pokemon id to display.
-    // The id can be different if the user change the id while a request is not completed.
+    // Pokemon id
     const id = json.id;
-    if (id !== misty.Get(_params.currentPokeId)) {
-      return;
-    }
 
     // Display pokemon name
     const pokemonName = json.name;
-    misty.DisplayText(pokemonName.toUpperCase());
 
     // Get the pokemon sprite URL
     const blackWhiteSprites =
@@ -47,21 +139,21 @@ function _SendExternalRequest(data) {
     const animatedSpriteUrl = blackWhiteSprites.animated["front_default"];
 
     // Get the first type of the pokemon
-    const first_type = json.types[0].type.name;
-    misty.Debug("Pokemon type: " + first_type);
+    const types = json.types.map((type) => type.type.name);
+    misty.Debug("Pokemon type: " + types);
 
-    // Download the sprite
-    misty.SendExternalRequest(
-      "GET",
-      animatedSpriteUrl,
-      null,
-      null,
-      "{}",
-      true, // Save to local storage
-      false, // Once saved, immediately display the image
-      `pokedex_${id}.gif`, // Filename
-      "image/gif", // The image is a gif file
-      "_OnPokeImageReady" // Callback function name to be called
+    const pokeData = {
+      id: id,
+      name: pokemonName,
+      spriteUrl: animatedSpriteUrl,
+      type: types,
+    };
+
+    misty.TriggerEvent(
+      _params.pokeReadyEvent, // Event to trigger
+      "external_request", // Source name, this is up to you
+      JSON.stringify(pokeData), // The data to be passed to the argument of function
+      "6b44c0a7-e646-40c1-85b2-7211f1fc870e" // Which skill(s) will receive the broadcasts
     );
   } else {
     // Error
@@ -69,9 +161,70 @@ function _SendExternalRequest(data) {
   }
 }
 
+function displayPokemon(id) {
+  const fromCache = getPokemonFromCache(id);
+
+  // Check the cache if the pokemon data exists
+  if (fromCache != null) {
+    _OnPokeReady(fromCache);
+  } else {
+    displayLoading();
+    misty.SendExternalRequest("GET", getPokemonUrl(id));
+  }
+}
+
+function _GetImage(data) {
+  const id = getCurrentPokemonId();
+
+  if (data.Status === 3) {
+    // There is an image downloaded
+    displayPokemonImage(id);
+  } else {
+    const spriteUrl = getPokemonFromCache(id).spriteUrl;
+    // Download the sprite
+    misty.SendExternalRequest(
+      "GET",
+      spriteUrl,
+      null,
+      null,
+      "{}",
+      true, // Save to local storage
+      false, // Once saved, immediately display the image
+      getPokemonImageName(id), // Filename
+      "image/gif", // The image is a gif file
+      "_OnPokeImageReady" // Callback function name to be called
+    );
+  }
+}
+
+function _OnPokeReady({ id, name, spriteUrl, type }) {
+  savePokemonToCache({ id, name, spriteUrl, type });
+
+  // Ensure that current callback matches the pokemon id to display.
+  // The id can be different if the user change the id while a request is not completed.
+  if (id !== getCurrentPokemonId()) {
+    misty.Debug(`The id ${id} is no longer valid, returning`);
+    return;
+  }
+
+  // Display the pokemon name
+  misty.DisplayText(name.toUpperCase());
+
+  // Change the LED based on the pokemon's first type
+  const [r, g, b] = getTypeColor(type[0]);
+  misty.ChangeLED(r, g, b);
+
+  const imageName = getPokemonImageName(id);
+  misty.GetImage(imageName);
+}
+
 function _OnPokeImageReady(data) {
-  const pokeId = misty.Get(_params.currentPokeId);
-  const imageName = `pokedex_${pokeId}.gif`;
+  const pokeId = getCurrentPokemonId();
+  displayPokemonImage(pokeId);
+}
+
+function displayPokemonImage(id) {
+  const imageName = getPokemonImageName(id);
 
   // Change scaling so that the image doesn't get cropped
   misty.SetImageDisplaySettings(
@@ -93,29 +246,22 @@ function _OnPokeImageReady(data) {
 
 function _OnBump(data) {
   const sensorName = data.AdditionalResults[0];
-  const currentPokeId = misty.Get(_params.currentPokeId);
 
+  // Check which bump sensor is activated.
   if (sensorName.includes("Left")) {
-    if (currentPokeId === _params.maxPokeId) {
-      misty.Set(_params.currentPokeId, _params.minPokeId);
-    } else {
-      misty.Set(_params.currentPokeId, currentPokeId + 1);
-    }
+    prevPokemon();
   } else {
-    if (currentPokeId === _params.minPokeId) {
-      misty.Set(_params.currentPokeId, _params.maxPokeId);
-    } else {
-      misty.Set(_params.currentPokeId, currentPokeId - 1);
-    }
+    nextPokemon();
   }
 
-  const updatedId = misty.Get(_params.currentPokeId);
-
-  displayLoading();
-
-  misty.SendExternalRequest("GET", getPokemonUrl(updatedId));
+  // Get the new id
+  const updatedId = getCurrentPokemonId();
+  displayPokemon(updatedId);
 }
 
+/**
+ * Display loading state to the user.
+ */
 function displayLoading() {
   // Reset the layer settings
   misty.SetImageDisplaySettings(null, true);
