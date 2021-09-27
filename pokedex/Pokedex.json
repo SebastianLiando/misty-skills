@@ -10,12 +10,16 @@
   "WriteToLog": false,
   "SkillStorageLifetime": "LongTerm",
   "Parameters": {
+    "skillId": "6b44c0a7-e646-40c1-85b2-7211f1fc870e",
     "baseUrl": "https://pokeapi.co/api/v2/pokemon/",
     "minPokeId": 1,
     "maxPokeId": 649,
     "currentPokeId": "currentPokeId",
     "pokedexCache": "pokedexCache",
     "bumpEvent": "OnBump",
-    "pokeReadyEvent": "OnPokeReady"
+    "pokeReadyEvent": "OnPokeReady",
+    "displayTypeEvent": "OnDisplayPokemonType",
+    "firstTypeEvent": "TypeFirst",
+    "secondTypeEvent": "TypeSecond"
   }
 }

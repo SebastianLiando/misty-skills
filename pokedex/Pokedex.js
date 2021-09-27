@@ -81,6 +81,8 @@ function getCurrentPokemonId() {
  * Set current pokemon id to the next pokemon.
  */
 function nextPokemon() {
+  const currentPokeId = getCurrentPokemonId();
+
   if (currentPokeId === _params.minPokeId) {
     misty.Set(_params.currentPokeId, _params.maxPokeId);
   } else {
@@ -92,6 +94,8 @@ function nextPokemon() {
  * Set current pokemon id to the previous pokemon。
  */
 function prevPokemon() {
+  const currentPokeId = getCurrentPokemonId();
+
   if (currentPokeId === _params.maxPokeId) {
     misty.Set(_params.currentPokeId, _params.minPokeId);
   } else {
@@ -100,6 +104,7 @@ function prevPokemon() {
 }
 
 misty.RegisterUserEvent(_params.pokeReadyEvent, true);
+misty.RegisterUserEvent(_params.displayTypeEvent, true);
 
 // When the skill starts, display the first pokemon
 displayPokemon(_params.minPokeId);
@@ -130,6 +135,13 @@ function _SendExternalRequest(data) {
     // Pokemon id
     const id = json.id;
 
+    // Ensure that current callback matches the pokemon id to display.
+    // The id can be different if the user change the id while a request is not completed.
+    if (id !== getCurrentPokemonId()) {
+      misty.Debug(`The id ${id} is no longer valid, returning`);
+      return;
+    }
+
     // Display pokemon name
     const pokemonName = json.name;
 
@@ -153,7 +165,7 @@ function _SendExternalRequest(data) {
       _params.pokeReadyEvent, // Event to trigger
       "external_request", // Source name, this is up to you
       JSON.stringify(pokeData), // The data to be passed to the argument of function
-      "6b44c0a7-e646-40c1-85b2-7211f1fc870e" // Which skill(s) will receive the broadcasts
+      _params.skillId // Which skill(s) will receive the broadcasts
     );
   } else {
     // Error
@@ -200,20 +212,13 @@ function _GetImage(data) {
 function _OnPokeReady({ id, name, spriteUrl, type }) {
   savePokemonToCache({ id, name, spriteUrl, type });
 
-  // Ensure that current callback matches the pokemon id to display.
-  // The id can be different if the user change the id while a request is not completed.
-  if (id !== getCurrentPokemonId()) {
-    misty.Debug(`The id ${id} is no longer valid, returning`);
-    return;
-  }
-
   // Display the pokemon name
   misty.DisplayText(name.toUpperCase());
 
-  // Change the LED based on the pokemon's first type
-  const [r, g, b] = getTypeColor(type[0]);
-  misty.ChangeLED(r, g, b);
+  // Change the LED based on the pokemon type
+  misty.TriggerEvent(_params.displayTypeEvent, "", "{}", _params.skillId);
 
+  // Display the pokemon image
   const imageName = getPokemonImageName(id);
   misty.GetImage(imageName);
 }
@@ -317,4 +322,52 @@ function getTypeColor(type) {
     default:
       return null;
   }
+}
+
+/**
+ * Display the pokemon type to the user.
+ * @param {number} id The pokemon id
+ * @param {boolean} second `true` if displaying the pokemon's second type. `false` if displaying the pokemon's first type.
+ */
+function displayPokemonType(id, second) {
+  const pokeData = getPokemonFromCache(id);
+
+  if (pokeData) {
+    const type = pokeData.type;
+    let [r, g, b] = getTypeColor(type[0]);
+
+    if (second && type.length === 2) {
+      [r, g, b] = getTypeColor(type[1]);
+    }
+
+    misty.ChangeLED(r, g, b);
+  }
+}
+
+function _OnDisplayPokemonType(data) {
+  // Stop any ongoing color change
+  misty.UnregisterEvent("TimerFirst");
+  misty.UnregisterEvent("TimerSecond");
+
+  // Display the first type color
+  displayPokemonType(getCurrentPokemonId(), false);
+
+  // Start color change
+  misty.RegisterTimerEvent(_params.secondTypeEvent, 1000, false);
+}
+
+function _TypeFirst(data) {
+  // Display the pokemon's first type
+  displayPokemonType(getCurrentPokemonId(), false);
+
+  // Start timer to display the second type
+  misty.RegisterTimerEvent(_params.secondTypeEvent, 1000, false);
+}
+
+function _TypeSecond(data) {
+  // Display the pokemon's second type if any
+  displayPokemonType(getCurrentPokemonId(), true);
+
+  // Start timer to display the first type
+  misty.RegisterTimerEvent(_params.firstTypeEvent, 1000, false);
 }
