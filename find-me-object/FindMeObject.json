@@ -1,0 +1,12 @@
+{
+  "Name": "FindMeObject",
+  "UniqueId": "bb78a920-562b-44ef-9f5c-fe05fb77996e",
+  "Description": "My skill is amazing!",
+  "StartupRules": ["Manual", "Robot"],
+  "Language": "javascript",
+  "BroadcastMode": "verbose",
+  "TimeoutInSeconds": 600,
+  "CleanupOnCancel": true,
+  "WriteToLog": false,
+  "Parameters": {}
+}
