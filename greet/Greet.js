@@ -8,11 +8,11 @@ function getGreetStateKey() {
 }
 
 function getDistanceToGreet() {
-  return 60;
+  return _params.distanceToGreet;
 }
 
 function getDistanceToBye() {
-  return 100;
+  return _params.distanceToBye;
 }
 
 function getGoodByeEvent() {
@@ -47,7 +47,7 @@ function _OnFaceRecognition(data) {
   if (greeted && distance < getDistanceToBye()) {
     // If the user has been greeted, and the face is still detected, cancel the restart the timer
     misty.UnregisterEvent(getGoodByeEvent());
-    misty.RegisterTimerEvent(getGoodByeEvent(), 3000, false);
+    misty.RegisterTimerEvent(getGoodByeEvent(), _params.timeoutMs, false);
   }
 }
 
