@@ -130,6 +130,14 @@ function endGame() {
 
   misty.DisplayText("", "score");
   misty.DisplayImage("e_DefaultContent.jpg");
+
+  // Broadcast event that indicates the game has ended
+  misty.TriggerEvent(
+    "OnGameEnded",
+    "FindMeObject",
+    "",
+    "" // Allow all skills to listen to this event
+  );
 }
 
 function mistyYay(durationMs) {
