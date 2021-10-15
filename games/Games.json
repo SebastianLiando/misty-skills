@@ -1,0 +1,12 @@
+{
+  "Name": "Games",
+  "UniqueId": "b87ad59e-a232-4c86-bfa9-55e76fa8eeeb",
+  "Description": "My skill is amazing!",
+  "StartupRules": ["Startup", "Robot"],
+  "Language": "javascript",
+  "BroadcastMode": "verbose",
+  "TimeoutInSeconds": 3600,
+  "CleanupOnCancel": true,
+  "WriteToLog": false,
+  "Parameters": {}
+}
