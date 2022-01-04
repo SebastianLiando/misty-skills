@@ -1,0 +1,12 @@
+{
+  "Name": "AvStream",
+  "UniqueId": "2b6b4262-3e4e-4b77-bc17-9fe0dabb7a32",
+  "Description": "My skill is amazing!",
+  "StartupRules": ["Manual", "Robot"],
+  "Language": "javascript",
+  "BroadcastMode": "verbose",
+  "TimeoutInSeconds": 600,
+  "CleanupOnCancel": true,
+  "WriteToLog": false,
+  "Parameters": {}
+}
