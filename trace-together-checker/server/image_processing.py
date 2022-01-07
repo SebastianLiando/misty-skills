@@ -1,8 +1,5 @@
-import time
-from typing import Optional
+from typing import Any, Tuple
 from PIL import Image, ImageFilter
-import json
-import torch
 import cv2
 import numpy as np
 
@@ -50,40 +47,68 @@ def binarization(image):
     return image
 
 
-# Object detector
-model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
-model.conf = 0.1
-
-
-def detect_mobile_phone(path: str) -> Optional[dict]:
-    """Returns the detected cell phone data from the given image path."""
-    start = time.time()
-    results = model(path)
-    end = time.time()
-
-    print(f'Object detection takes {end - start} seconds')
-
-    results = results.pandas().xyxy[0].to_json(orient="records")
-    results = json.loads(results)
-
-    # Remove other objects except cell phone
-    results = list(filter(lambda item: item['name'] == 'cell phone', results))
-
-    # Return the first result
-    if len(results) > 0:
-        return results[0]
-    else:
-        return None
-
-
-def crop_bbox(path: str, xmin, xmax, ymin, ymax):
+def crop_bbox(image, xmin: float, xmax: float, ymin: float, ymax: float):
     """Crops the image according to the bounding box."""
-    image = cv2.imread(path)
-
     cropped = image[int(ymin):int(ymax), int(xmin):int(xmax)]
     return cropped
+
+
+def load_image(path: str):
+    """Loads image from the given path."""
+    image = cv2.imread(path)  # Read the file (will be in BGR)
+
+    return image
 
 
 def save_image(image, path: str):
     """Saves cv2 image to the given path."""
     cv2.imwrite(path, image)
+
+# -------------------------- COLOR DETECTION --------------------------
+
+
+def color_correct(img, threshold=0.5, grid_size=10):
+    img_lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+
+    lab_planes = cv2.split(img_lab)
+    clahe = cv2.createCLAHE(clipLimit=threshold,
+                            tileGridSize=(grid_size, grid_size))
+    lab_planes[0] = clahe.apply(lab_planes[0])
+
+    img_lab = cv2.merge(lab_planes)
+
+    # Convert back to RGB
+    output = cv2.cvtColor(img_lab, cv2.COLOR_LAB2BGR)
+    return output
+
+
+def get_green_ratio(img, dark_green=(137, 117, 58), light_green=(198, 171, 114), diff=30) -> Tuple[float, Any]:
+    # Boundaries in BGR
+    boundaries = [
+        # Darker green
+        ([dark_green[0] - diff, dark_green[1] - diff, dark_green[2] - diff],
+         [dark_green[0] + diff, dark_green[1] + diff, dark_green[2] + diff]),
+
+        # Lighter green
+        ([light_green[0] - diff, light_green[1] - diff, light_green[2] - diff],
+         [light_green[0] + diff, light_green[1] + diff, light_green[2] + diff])
+    ]
+
+    results = []
+    green_count = 0
+
+    for (lower, upper) in boundaries:
+        lower = np.array(lower, dtype='uint8')
+        upper = np.array(upper, dtype='uint8')
+
+        mask = cv2.inRange(img, lower, upper)
+        output = cv2.bitwise_and(img, img, mask=mask)
+
+        results.append(output)
+        green_count += cv2.countNonZero(mask)
+
+    final = cv2.bitwise_or(results[0], results[1])
+
+    ratio_green = green_count / (img.size / 3)
+
+    return ratio_green, final

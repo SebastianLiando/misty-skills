@@ -1,4 +1,5 @@
 misty.UnregisterAllEvents();
+misty.EnableCameraService();
 
 // Try to connect to the server
 misty.SendExternalRequest(
@@ -113,7 +114,8 @@ function checkTraceTogetherImage(base64) {
 
 function _TraceTogetherResult(data) {
   const response = JSON.parse(data.Result.ResponseObject.Data);
-  misty.Debug(response);
+  
+  misty.Debug(JSON.stringify(response));
 }
 
 function speechToText(base64) {

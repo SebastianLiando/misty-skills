@@ -1,12 +1,10 @@
 import os
-from typing import List
 import json
 import wave
 import fastapi
 from vosk import Model, KaldiRecognizer
 from speech_recognition import Recognizer, AudioFile
 from datetime import datetime
-import re
 from pydantic import BaseModel
 from io import BytesIO
 from fastapi import FastAPI
@@ -15,7 +13,9 @@ import pytesseract
 
 import base64
 
-from image_processing import crop_bbox, detect_mobile_phone, save_image, simple_thresholding, unsharp_mask
+from validator import is_date_valid, is_location_valid, is_check_in, is_safe_entry
+from detector import detect_mobile_phone
+from image_processing import crop_bbox, save_image, unsharp_mask, load_image, color_correct, get_green_ratio
 
 app = FastAPI()
 
@@ -34,32 +34,6 @@ def decode_base64(base64_image: str) -> BytesIO:
     return BytesIO(decoded_bytes)
 
 
-def is_date_valid(ocr_result: str) -> bool:
-    """Returns `true` if the date is valid. Date is valid if it matches today.
-
-    Args:
-        ocr_result (str): The result of OCR.
-
-    Returns:
-        bool: `true` if the date is valid.
-    """
-    # Find the date string.
-    DATE_PATTERN = r"\d{1,2} \w{3}"
-    dates = re.findall(DATE_PATTERN, ocr_result)
-
-    if (len(dates) == 0):
-        return False
-
-    # Parse the detected date
-    detected_date = dates[0]
-    detected_date = datetime.strptime(detected_date, "%d %b").date()
-    print(f'Detected date: {detected_date}')
-
-    # Compare the day and month
-    date_now = datetime.now().date()
-    return date_now.day == detected_date.day and date_now.month == detected_date.month
-
-
 @app.post('/check')
 def check_trace_together(data: TraceTogetherImage):
     # Save the base64 image.
@@ -68,41 +42,62 @@ def check_trace_together(data: TraceTogetherImage):
         f"/trace-together-checker/server/images/{time}.jpg"
     img_bytes = base64.b64decode(data.image)
 
+    # Write image to file
     with open(img_path, 'wb+') as f:
         f.write(img_bytes)
 
+    # Load image to memory
+    image = load_image(img_path)
+
     # Try to detect mobile phone
-    detected_phone = detect_mobile_phone(img_path)
+    detected_phone = detect_mobile_phone(image)
 
     if detected_phone == None:
         raise fastapi.HTTPException(
-            status_code=400, detail="Mobile phone not detected")
+            status_code=404, detail="Mobile phone not detected")
 
     # Crop the image and save it
     xmin, xmax = detected_phone['xmin'], detected_phone['xmax']
     ymin, ymax = detected_phone['ymin'], detected_phone['ymax']
 
-    cropped = crop_bbox(img_path, xmin, xmax, ymin, ymax)
+    cropped = crop_bbox(image, xmin, xmax, ymin, ymax)
     enhanced = unsharp_mask(cropped, round=3)
     save_image(enhanced, path=img_path)
 
     # Get the text in the image
-    result = pytesseract.image_to_string(enhanced, lang="eng")
-    print(result)
+    result = pytesseract.image_to_string(
+        enhanced,
+        lang="eng",  # Language is English
+        config='--oem 1'  # Use Mode 1: LSTM only
+    )
+    print(result.split('\n'))
+
+    # Check vaccination status
+    color_corrected = color_correct(cropped)
+    ratio, mask = get_green_ratio(color_corrected, diff=50)
+    save_image(mask, os.getcwd() +
+               f"/trace-together-checker/server/images/mask.jpg")
+    print(ratio)
+    vaccinated = ratio > 0.5
 
     # Check if it's a SafeEntry
-    safe_entry = result.find("SafeEntry") != -1
+    safe_entry = is_safe_entry(result)
 
     # Check if it's check in
-    check_in = result.find("Check-in") != -1
+    check_in = is_check_in(result)
 
     # Check the date
     date_valid = is_date_valid(result)
 
+    # Check the location
+    location_valid = is_location_valid(result, 'NTU - N3 AND N4 CLUSTER')
+
     return {
         "date_valid": date_valid,
+        'location_valid': location_valid,
         "check_in": check_in,
-        "safe_entry": safe_entry
+        "safe_entry": safe_entry,
+        'vaccinated': vaccinated,
     }
 
 
