@@ -39,15 +39,16 @@ def check_trace_together(data: TraceTogetherImage):
     # Save the base64 image.
     time = datetime.now().timestamp()
     img_path = os.getcwd() + \
-        f"/trace-together-checker/server/images/{time}.jpg"
+        f"/trace-together-checker/server/images/{time}"
+    os.makedirs(img_path)
     img_bytes = base64.b64decode(data.image)
 
     # Write image to file
-    with open(img_path, 'wb+') as f:
+    with open(f'{img_path}/original.jpg', 'wb+') as f:
         f.write(img_bytes)
 
     # Load image to memory
-    image = load_image(img_path)
+    image = load_image(f'{img_path}/original.jpg')
 
     # Try to detect mobile phone
     detected_phone = detect_mobile_phone(image)
@@ -62,7 +63,8 @@ def check_trace_together(data: TraceTogetherImage):
 
     cropped = crop_bbox(image, xmin, xmax, ymin, ymax)
     enhanced = unsharp_mask(cropped, round=3)
-    save_image(enhanced, path=img_path)
+    save_image(cropped, path=f'{img_path}/cropped.jpg')
+    save_image(enhanced, path=f'{img_path}/enhanced.jpg')
 
     # Get the text in the image
     result = pytesseract.image_to_string(
@@ -75,10 +77,9 @@ def check_trace_together(data: TraceTogetherImage):
     # Check vaccination status
     color_corrected = color_correct(cropped)
     ratio, mask = get_green_ratio(color_corrected, diff=50)
-    save_image(mask, os.getcwd() +
-               f"/trace-together-checker/server/images/mask.jpg")
+    save_image(mask, f"{img_path}/mask.jpg")
     print(ratio)
-    vaccinated = ratio > 0.5
+    vaccinated = ratio > 0.35
 
     # Check if it's a SafeEntry
     safe_entry = is_safe_entry(result)
@@ -92,13 +93,16 @@ def check_trace_together(data: TraceTogetherImage):
     # Check the location
     location_valid = is_location_valid(result, 'NTU - N3 AND N4 CLUSTER')
 
-    return {
-        "date_valid": date_valid,
-        'location_valid': location_valid,
-        "check_in": check_in,
-        "safe_entry": safe_entry,
+    response = {
+        "dateValid": date_valid,
+        'locationValid': location_valid,
+        "checkIn": check_in,
+        "safeEntry": safe_entry,
         'vaccinated': vaccinated,
     }
+
+    print(response)
+    return response
 
 
 class AudioData(BaseModel):
