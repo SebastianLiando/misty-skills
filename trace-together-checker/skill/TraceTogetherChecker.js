@@ -1,6 +1,20 @@
 misty.UnregisterAllEvents();
 misty.EnableCameraService();
 
+// Run user detection skill
+misty.RegisterUserEvent("OnUserCloseBy", true);
+misty.RunSkill("29e71806-c2f7-46f4-b185-976dd0da3b27");
+
+function _OnUserCloseBy({ closeBy, distance }) {
+  if (closeBy) {
+    misty.Speak(
+      "Hello, please put your phone on the table and then tap my head"
+    );
+  } else {
+    // TBD
+  }
+}
+
 // Try to connect to the server
 misty.SendExternalRequest(
   "GET",
@@ -97,7 +111,6 @@ function _TakePicture(data) {
 }
 
 function checkTraceTogetherImage(base64) {
-  misty.Debug("File size: " + base64.length);
   misty.SendExternalRequest(
     "POST",
     _params.baseUrl + "/check",
@@ -114,8 +127,46 @@ function checkTraceTogetherImage(base64) {
 
 function _TraceTogetherResult(data) {
   const response = JSON.parse(data.Result.ResponseObject.Data);
-  
+
   misty.Debug(JSON.stringify(response));
+
+  // Check for errors in detection
+  const errorDetail = response["detail"];
+  if (errorDetail) {
+    misty.Speak(`Sorry, ${errorDetail}`);
+    return;
+  }
+
+  handleTraceTogetherResult(response);
+}
+
+function handleTraceTogetherResult({
+  dateValid,
+  locationValid,
+  checkIn,
+  safeEntry,
+  vaccinated,
+}) {
+  const isCheckInCert = (checkIn && safeEntry) || vaccinated;
+
+  // Make sure it is a trace-together check-in certificate
+  if (!isCheckInCert) {
+    misty.Speak("Sorry! Invalid trace together check-in certificate");
+    return;
+  }
+
+  // Not fully vaccinated cannot enter
+  if (!vaccinated) {
+    misty.Speak("Sorry! You are not fully vaccinated");
+    return;
+  }
+
+  // Date or location
+  if (dateValid && locationValid) {
+    misty.Speak("Thank you! Welcome to NTU - N3 AND N4 CLUSTER");
+  } else {
+    misty.Speak("Sorry! Make sure location and date is valid");
+  }
 }
 
 function speechToText(base64) {

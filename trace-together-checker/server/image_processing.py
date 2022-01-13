@@ -12,7 +12,7 @@ def unsharp_mask_pil(image):
     return np.array(image)
 
 
-def unsharp_mask(image, round: int = 1, radius: int = 3, alpha: float = 1.5, beta: float = -0.5, gamma: float = 0):
+def unsharp_mask(image, round: int = 1, radius: float = 10, alpha: float = 1.5, beta: float = -0.5, gamma: float = 0):
     result = image
 
     for _ in range(round):
