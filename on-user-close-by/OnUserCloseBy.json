@@ -1,0 +1,15 @@
+{
+  "Name": "OnUserCloseBy",
+  "UniqueId": "29e71806-c2f7-46f4-b185-976dd0da3b27",
+  "Description": "My skill is amazing!",
+  "StartupRules": ["Manual", "Robot"],
+  "Language": "javascript",
+  "BroadcastMode": "verbose",
+  "TimeoutInSeconds": 600,
+  "CleanupOnCancel": true,
+  "WriteToLog": false,
+  "Parameters": {
+    "distanceThreshold": 100,
+    "timeoutMs": 5000
+  }
+}
