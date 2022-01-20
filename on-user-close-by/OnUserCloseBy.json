@@ -1,7 +1,7 @@
 {
   "Name": "OnUserCloseBy",
   "UniqueId": "29e71806-c2f7-46f4-b185-976dd0da3b27",
-  "Description": "My skill is amazing!",
+  "Description": "Triggers event when someone approaches and leaves Misty",
   "StartupRules": ["Manual", "Robot"],
   "Language": "javascript",
   "BroadcastMode": "verbose",

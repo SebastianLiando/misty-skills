@@ -1,8 +1,18 @@
 // ------------------- State management ---------------------
+/**
+ * Returns the state id of this skill.
+ * @returns  The state id of this skill.
+ */
 function getUserCloseByKey() {
   return "Greeted";
 }
 
+/**
+ * Reads or updates the state with the id `Greeted`.
+ *
+ * @param {boolean} closeBy The new value of the state, or null if only reading the state.
+ * @returns The current value of the state.
+ */
 function isUserCloseBy(closeBy = null) {
   // If argument provided, update the state.
   if (closeBy != null) {
@@ -24,14 +34,17 @@ function getTimeoutMs() {
 }
 
 // ----------------- Utils -----------------
+/**
+ * Initializes the skill.
+ */
 function init() {
   const FACE_EVENT = "OnFaceRecognition";
-  // Remove any face event listeners
+  // Remove any previous face event listeners started by this skill
   misty.UnregisterEvent(FACE_EVENT);
   // Set initial state
   isUserCloseBy(false);
 
-  // Get the distance when recognizing
+  // Get the distance data for face events
   misty.AddReturnProperty(FACE_EVENT, "Distance");
   // Listen to face events indefinitely with 100 ms notification interval
   misty.RegisterEvent(FACE_EVENT, "FaceRecognition", 100, true);
@@ -75,7 +88,10 @@ function _OnFaceRecognition(data) {
 }
 
 function _OnTimeout(data) {
+  // Set the state to false.
   isUserCloseBy(false);
+
+  // Tell other skills that the user is no longer close to Misty.
   broadcastEvent(false, -1);
 }
 
