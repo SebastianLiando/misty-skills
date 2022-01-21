@@ -187,4 +187,5 @@ def check_speech(data: AudioData):
 
 
 if __name__ == "__main__":
+    # Run this script on port 8000 (default port number)
     uvicorn.run("app:app", host="0.0.0.0")
