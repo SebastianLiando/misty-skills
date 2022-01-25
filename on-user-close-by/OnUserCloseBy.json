@@ -10,6 +10,6 @@
   "WriteToLog": false,
   "Parameters": {
     "distanceThreshold": 100,
-    "timeoutMs": 5000
+    "timeoutMs": 10000
   }
 }
