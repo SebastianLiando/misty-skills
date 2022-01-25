@@ -1,6 +1,15 @@
+function getTTFeedbackSpeechId() {
+  return "trace-together-feedback-speech";
+}
+
 misty.UnregisterAllEvents();
 misty.EnableCameraService();
 
+misty.GetCameraDetails();
+
+function _GetCameraDetails(data) {
+  misty.Debug(JSON.stringify(data));
+}
 // Run user detection skill
 misty.RegisterUserEvent("OnUserCloseBy", true);
 misty.RunSkill("29e71806-c2f7-46f4-b185-976dd0da3b27");
@@ -8,9 +17,7 @@ misty.RunSkill("29e71806-c2f7-46f4-b185-976dd0da3b27");
 function _OnUserCloseBy({ closeBy, distance }) {
   // Give instruction to the user.
   if (closeBy) {
-    misty.Speak(
-      "Please show your check-in certificate", true
-    );
+    misty.Speak("Please show your check-in certificate", true);
 
     misty.AddPropertyTest(
       "OnCellPhone",
@@ -90,6 +97,14 @@ function setupSkill() {
   // Listen to touch sensor on Misty's head.
   misty.AddReturnProperty("OnTouch", "sensorPosition");
   misty.RegisterEvent("OnTouch", "TouchSensor", 1000, true);
+
+  // Listen to feedback
+  misty.RegisterEvent(
+    "OnTraceTogetherFeedbackEnd",
+    "TextToSpeechComplete",
+    100,
+    true
+  );
 }
 
 function _OnTouch(data) {
@@ -153,7 +168,7 @@ function _TraceTogetherResult(data) {
   // Check for errors in detection
   const errorDetail = response["detail"];
   if (errorDetail) {
-    misty.Speak(`Sorry, ${errorDetail}`);
+    feedback(false);
   } else {
     // If no error, process the response
     handleTraceTogetherResult(response);
@@ -172,42 +187,59 @@ function handleTraceTogetherResult({
   // Make sure it is a trace-together check-in certificate
   const isCheckInCert = (checkIn && safeEntry) || vaccinated;
   if (!isCheckInCert) {
-    misty.Speak("Sorry! Invalid trace together check-in certificate");
+    feedback(true, true, "Sorry! Invalid trace together check-in certificate");
     return;
   }
 
   // Not fully vaccinated cannot enter
   if (!vaccinated) {
-    misty.Speak("Sorry! You are not fully vaccinated");
+    feedback(true, true, "Sorry! You are not fully vaccinated");
     return;
   }
 
   // Check date and location
   if (dateValid && locationValid) {
-    misty.Speak("Thank you! Welcome to NTU - N3 AND N4 CLUSTER");
+    feedback(true, false);
   } else {
-    misty.Speak("Sorry! Make sure location and date is valid");
+    feedback(true, true, "Sorry! Make sure location and date is valid");
   }
 }
 
-function speechToText(base64) {
-  misty.SendExternalRequest(
-    "POST",
-    _params.baseUrl + "/speech",
-    null,
-    null,
-    JSON.stringify({ audio: base64 }),
-    "false",
-    "false",
-    "filename.png",
-    "application/json",
-    "_SpeechResult"
-  );
+function feedback(foundPhone, error, reason) {
+  const isValidCert = foundPhone && !error;
+  let speechFeedback = "";
+  if (!foundPhone) {
+    speechFeedback = "Please hold your phone like this";
+  } else {
+    speechFeedback = isValidCert
+      ? "Thank you! Welcome to NTU - N3 AND N4 CLUSTER"
+      : reason;
+  }
+
+  // Speech feedback
+  misty.Speak(speechFeedback, 1, 1, "default", false, getTTFeedbackSpeechId());
+
+  // Expression feedback
+  let expr = "e_Admiration.jpg";
+  if (error) {
+    expr = "e_Sadness.jpg";
+  } else if (!foundPhone) {
+    expr = "e_ApprehensionConcerned.jpg";
+  }
+  misty.DisplayImage(expr);
+
+  // LED feedback
+  const [r, g, b] = !isValidCert || !foundPhone ? [255, 0, 0] : [0, 255, 0];
+  misty.ChangeLED(r, g, b);
+  // Head feedback
+
+  // Arm feedback
 }
 
-function _SpeechResult(data) {
-  const response = JSON.parse(data.Result.ResponseObject.Data);
-  misty.Speak(response.speech);
-
-  waitUserSpeech();
+function _OnTraceTogetherFeedbackEnd(data) {
+  // Reset Misty to default stance
+  misty.DisplayImage("e_DefaultContent.jpg"); // Default expression
+  misty.MoveHead(0, 0, 0, 100); // Default head position
+  misty.MoveArms(45, 45, 100, 100); // Default arms position
+  misty.ChangeLED(0, 0, 0); // Default LED
 }
