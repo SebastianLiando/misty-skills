@@ -9,9 +9,43 @@ function _OnUserCloseBy({ closeBy, distance }) {
   // Give instruction to the user.
   if (closeBy) {
     misty.Speak(
-      "Hello, please put your phone on the table and then tap my head"
+      "Please show your check-in certificate", true
     );
+
+    misty.AddPropertyTest(
+      "OnCellPhone",
+      "Description",
+      "==",
+      "cell phone",
+      "string"
+    );
+    misty.AddReturnProperty("OnCellPhone", "Description");
+    misty.RegisterEvent("OnCellPhone", "ObjectDetection", 500, true);
+    misty.StartObjectDetector(0.7, 0, 15);
+    misty.Set("lock", false);
+  } else {
+    misty.UnregisterEvent("OnCellPhone");
+    misty.StopObjectDetector();
   }
+}
+
+function _OnCellPhone(data) {
+  const [name] = data.AdditionalResults;
+
+  misty.Debug(name);
+
+  if (!misty.Get("lock")) {
+    misty.Set("lock", true);
+  } else {
+    return;
+  }
+
+  misty.Speak("Hold steady", true);
+  misty.RegisterTimerEvent("OnTakePicture", 2000, false);
+}
+
+function _OnTakePicture() {
+  checkTraceTogether();
 }
 
 /**
@@ -120,11 +154,12 @@ function _TraceTogetherResult(data) {
   const errorDetail = response["detail"];
   if (errorDetail) {
     misty.Speak(`Sorry, ${errorDetail}`);
-    return;
+  } else {
+    // If no error, process the response
+    handleTraceTogetherResult(response);
   }
 
-  // If no error, process the response
-  handleTraceTogetherResult(response);
+  misty.Set("lock", false);
 }
 
 function handleTraceTogetherResult({
