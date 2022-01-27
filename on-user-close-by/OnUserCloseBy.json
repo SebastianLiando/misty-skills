@@ -9,7 +9,7 @@
   "CleanupOnCancel": true,
   "WriteToLog": false,
   "Parameters": {
-    "distanceThreshold": 100,
+    "distanceThreshold": 200,
     "timeoutMs": 10000
   }
 }
