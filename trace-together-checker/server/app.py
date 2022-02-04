@@ -1,9 +1,5 @@
 import os
-import json
-import wave
 import fastapi
-from vosk import Model, KaldiRecognizer
-from speech_recognition import Recognizer, AudioFile
 from datetime import datetime
 from pydantic import BaseModel
 from io import BytesIO
@@ -103,88 +99,6 @@ def check_trace_together(data: TraceTogetherImage):
 
     print(response)
     return response
-
-
-class AudioData(BaseModel):
-    audio: str
-
-
-def recognize_speech_with_sphinx(audio: AudioFile, lang="en-US") -> str:
-    speech_recognizer = Recognizer()
-
-    # Do speech recognition
-    with audio as source:
-        # Add this code to remove background noise
-        # speech_recognizer.adjust_for_ambient_noise(source)
-        audio_data = speech_recognizer.record(source)
-
-    return speech_recognizer.recognize_sphinx(audio_data, lang)
-
-
-def recognize_speech_with_vosk(wf) -> str:
-    model = Model('trace-together-checker/server/model')
-    recognizer = KaldiRecognizer(model, wf.getframerate())
-    recognizer.SetWords(True)
-
-    text_lst = []
-    p_text_lst = []
-    p_str = []
-    len_p_str = []
-    while True:
-        data = wf.readframes(4000)
-        if len(data) == 0:
-            break
-        if recognizer.AcceptWaveform(data):
-            text_lst.append(recognizer.Result())
-            # print(recognizer.Result())
-        else:
-            p_text_lst.append(recognizer.PartialResult())
-            # print(recognizer.PartialResult())
-
-    if len(text_lst) != 0:
-        jd = json.loads(text_lst[0])
-        txt_str = jd["text"]
-
-    elif len(p_text_lst) != 0:
-        for i in range(0, len(p_text_lst)):
-            temp_txt_dict = json.loads(p_text_lst[i])
-            p_str.append(temp_txt_dict['partial'])
-
-        len_p_str = [len(p_str[j]) for j in range(0, len(p_str))]
-        max_val = max(len_p_str)
-        indx = len_p_str.index(max_val)
-        txt_str = p_str[indx]
-
-    else:
-        txt_str = ''
-
-    return txt_str
-
-
-@app.post("/speech")
-def check_speech(data: AudioData):
-    # Get audio file
-    audio_file = decode_base64(data.audio)
-
-    # Save it as a reference
-    file_path = os.getcwd() + "/trace-together-checker/server/audio.wav"
-    with open(file_path, 'wb+') as f:
-        f.write(audio_file.getvalue())
-
-    # Do speech recognition with CMU Sphinx
-    audio = AudioFile(audio_file)
-    speech_text = recognize_speech_with_sphinx(audio)
-    print('CMU Sphinx: ' + speech_text)
-
-    # Do speech recognition with Vosk
-    with wave.open("trace-together-checker/server/audio.wav", 'rb') as wf:
-        speech_text = recognize_speech_with_vosk(wf)
-    print('Vosk: ' + speech_text)
-
-    return {
-        "speech": speech_text
-    }
-
 
 if __name__ == "__main__":
     # Run this script on port 8000 (default port number)
