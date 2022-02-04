@@ -68,8 +68,10 @@ def save_image(image, path: str):
 
 
 def color_correct(img, threshold=0.5, grid_size=10):
+    # Convert to LAB format
     img_lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
 
+    # Apply CLAHE to the L component.
     lab_planes = cv2.split(img_lab)
     clahe = cv2.createCLAHE(clipLimit=threshold,
                             tileGridSize=(grid_size, grid_size))
@@ -77,7 +79,7 @@ def color_correct(img, threshold=0.5, grid_size=10):
 
     img_lab = cv2.merge(lab_planes)
 
-    # Convert back to RGB
+    # Convert back to BGR
     output = cv2.cvtColor(img_lab, cv2.COLOR_LAB2BGR)
     return output
 
