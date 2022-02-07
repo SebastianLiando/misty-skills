@@ -27,6 +27,7 @@ function _OnUserCloseBy({ closeBy, distance }) {
       "string"
     );
     misty.AddReturnProperty("OnCellPhone", "Description");
+    misty.AddReturnProperty("OnCellPhone", "Pitch");
     misty.RegisterEvent("OnCellPhone", "ObjectDetection", 500, true);
     misty.StartObjectDetector(0.7, 0, 15);
     misty.Set("lock", false);
@@ -37,11 +38,11 @@ function _OnUserCloseBy({ closeBy, distance }) {
 }
 
 function _OnCellPhone(data) {
-  const [name] = data.AdditionalResults;
-
-  misty.Debug(name);
+  const [name, pitch] = data.AdditionalResults;
 
   if (!misty.Get("lock")) {
+    misty.Debug(name + ": " + pitch);
+    misty.Set("pitch", pitch);
     misty.Set("lock", true);
   } else {
     return;
@@ -122,12 +123,19 @@ function _OnTouch(data) {
  * Misty takes picture and sends it to the local server to validate TraceTogether certificate.
  */
 function checkTraceTogether() {
+  // Move head up
+  misty.MoveHeadRadians(-0.25, 0, 0);
+  misty.Pause(1000);
+
   // Give feedback to the user that Misty is taking picture.
   misty.DisplayImage("e_SystemCamera.jpg");
   misty.PlayAudio("s_SystemCameraShutter.wav", 10);
-
   // Takes 4K picture. This will invoke the callback function _TakePicture().
   misty.TakePicture("trace-together", 4160, 3120, false, true);
+
+  // Reset head position
+  misty.Pause(1000);
+  misty.MoveHeadRadians(0, 0, 0);
 }
 
 function _TakePicture(data) {
@@ -158,9 +166,17 @@ function sendTraceTogetherImage(base64) {
     "application/json",
     "_TraceTogetherResult"
   );
+
+  // Show processing feedback
+  misty.TransitionLED(0, 0, 255, 0, 0, 0, "Breathe", 500);
+  misty.DisplayImage("a_Scanning.gif");
 }
 
 function _TraceTogetherResult(data) {
+  // Hide processing feedback
+  misty.ChangeLED(0, 0, 0);
+  misty.DisplayImage("e_DefaultContent.jpg");
+
   // Parse the response.
   const response = JSON.parse(data.Result.ResponseObject.Data);
   misty.Debug(JSON.stringify(response));
@@ -173,8 +189,6 @@ function _TraceTogetherResult(data) {
     // If no error, process the response
     handleTraceTogetherResult(response);
   }
-
-  misty.Set("lock", false);
 }
 
 function handleTraceTogetherResult({
@@ -231,9 +245,30 @@ function feedback(foundPhone, error, reason) {
   // LED feedback
   const [r, g, b] = !isValidCert || !foundPhone ? [255, 0, 0] : [0, 255, 0];
   misty.ChangeLED(r, g, b);
-  // Head feedback
 
   // Arm feedback
+  if (isValidCert) {
+    // Both arms
+    misty.MoveArms(20, 20, 100, 100);
+  } else if (!foundPhone) {
+    // Right arm straight forward
+    misty.MoveArm("right", 0, 60);
+  }
+
+  // Head feedback
+  if (isValidCert) {
+    // Bow head
+    misty.MoveHead(20, 0, 0);
+    misty.Pause(1000);
+    misty.MoveHead(0, 0, 0);
+  } else if (foundPhone && error) {
+    // Shake head
+    misty.MoveHead(0, 0, 20);
+    misty.Pause(500);
+    misty.MoveHead(0, 0, -20);
+    misty.Pause(500);
+    misty.MoveHead(0, 0, 0);
+  }
 }
 
 function _OnTraceTogetherFeedbackEnd(data) {
@@ -242,4 +277,6 @@ function _OnTraceTogetherFeedbackEnd(data) {
   misty.MoveHead(0, 0, 0, 100); // Default head position
   misty.MoveArms(45, 45, 100, 100); // Default arms position
   misty.ChangeLED(0, 0, 0); // Default LED
+
+  misty.Set("lock", false);
 }

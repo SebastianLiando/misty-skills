@@ -5,7 +5,7 @@
   "StartupRules": ["Manual", "Robot"],
   "Language": "javascript",
   "BroadcastMode": "verbose",
-  "TimeoutInSeconds": 600,
+  "TimeoutInSeconds": 86400,
   "CleanupOnCancel": true,
   "WriteToLog": false,
   "Parameters": {
