@@ -12,6 +12,7 @@ import base64
 from validator import is_date_valid, is_location_valid, is_check_in, is_safe_entry
 from detector import detect_mobile_phone
 from image_processing import crop_bbox, save_image, unsharp_mask, load_image, color_correct, get_green_ratio
+from config import get_location_for_robot
 
 app = FastAPI()
 
@@ -23,6 +24,7 @@ def home():
 
 class TraceTogetherImage(BaseModel):
     image: str
+    serial: str
 
 
 def decode_base64(base64_image: str) -> BytesIO:
@@ -87,11 +89,13 @@ def check_trace_together(data: TraceTogetherImage):
     date_valid = is_date_valid(result)
 
     # Check the location
-    location_valid = is_location_valid(result, 'NTU - N3 AND N4 CLUSTER')
+    assigned_location = get_location_for_robot(data.serial)
+    location_valid = is_location_valid(result, assigned_location)
 
     response = {
         "dateValid": date_valid,
         'locationValid': location_valid,
+        'location': assigned_location,
         "checkIn": check_in,
         "safeEntry": safe_entry,
         'vaccinated': vaccinated,
@@ -99,6 +103,7 @@ def check_trace_together(data: TraceTogetherImage):
 
     print(response)
     return response
+
 
 if __name__ == "__main__":
     # Run this script on port 8000 (default port number)

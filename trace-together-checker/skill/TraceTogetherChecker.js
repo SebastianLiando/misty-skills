@@ -2,17 +2,27 @@ function getTTFeedbackSpeechId() {
   return "trace-together-feedback-speech";
 }
 
+function robotSerialNumber(serial) {
+  const KEY = "serial-number";
+
+  if (serial !== undefined) {
+    misty.Set(KEY, serial);
+  }
+
+  return misty.Get(KEY);
+}
+
 misty.UnregisterAllEvents();
 misty.EnableCameraService();
 
-misty.GetCameraDetails();
+// Fetch information of the robot.
+misty.GetDeviceInformation();
 
-function _GetCameraDetails(data) {
-  misty.Debug(JSON.stringify(data));
+function _GetDeviceInformation(data) {
+  // Get the serial number, and save it to the state.
+  const result = data.Result;
+  robotSerialNumber(result.SerialNumber);
 }
-// Run user detection skill
-misty.RegisterUserEvent("OnUserCloseBy", true);
-misty.RunSkill("29e71806-c2f7-46f4-b185-976dd0da3b27");
 
 function _OnUserCloseBy({ closeBy, distance }) {
   // Give instruction to the user.
@@ -27,8 +37,8 @@ function _OnUserCloseBy({ closeBy, distance }) {
       "string"
     );
     misty.AddReturnProperty("OnCellPhone", "Description");
-    misty.AddReturnProperty("OnCellPhone", "Pitch");
-    misty.RegisterEvent("OnCellPhone", "ObjectDetection", 500, true);
+    misty.AddReturnProperty("OnCellPhone", "imageLocationBottom");
+    misty.RegisterEvent("OnCellPhone", "ObjectDetection", 10, true);
     misty.StartObjectDetector(0.7, 0, 15);
     misty.Set("lock", false);
   } else {
@@ -38,13 +48,16 @@ function _OnUserCloseBy({ closeBy, distance }) {
 }
 
 function _OnCellPhone(data) {
-  const [name, pitch] = data.AdditionalResults;
+  const [name, bboxBottom] = data.AdditionalResults;
 
   if (!misty.Get("lock")) {
-    misty.Debug(name + ": " + pitch);
-    misty.Set("pitch", pitch);
+    misty.Debug(name + ": " + bboxBottom);
+    misty.Set("bottom", bboxBottom);
     misty.Set("lock", true);
   } else {
+    // Update the bottom
+    misty.Debug(name + ": " + bboxBottom);
+    misty.Set("bottom", bboxBottom);
     return;
   }
 
@@ -52,7 +65,13 @@ function _OnCellPhone(data) {
   misty.RegisterTimerEvent("OnTakePicture", 2000, false);
 }
 
+/**
+ * Callback for cell phone detection.
+ */
 function _OnTakePicture() {
+  // Adjust Misty's head.
+  adjustHeadToPhone();
+  // Take photo and check TT certificate.
   checkTraceTogether();
 }
 
@@ -99,13 +118,17 @@ function setupSkill() {
   misty.AddReturnProperty("OnTouch", "sensorPosition");
   misty.RegisterEvent("OnTouch", "TouchSensor", 1000, true);
 
-  // Listen to feedback
+  // Listen to speech feedback completion.
   misty.RegisterEvent(
     "OnTraceTogetherFeedbackEnd",
     "TextToSpeechComplete",
     100,
     true
   );
+
+  // Run user detection skill
+  misty.RegisterUserEvent("OnUserCloseBy", true);
+  misty.RunSkill("29e71806-c2f7-46f4-b185-976dd0da3b27");
 }
 
 function _OnTouch(data) {
@@ -119,14 +142,46 @@ function _OnTouch(data) {
   checkTraceTogether();
 }
 
+function adjustHeadToPhone() {
+  // Get latest bottom position of phone
+  const bottom = misty.Get("bottom");
+  // Ideally, the bottom of the cell phone is at 340
+  const idealBottom = 310;
+  // Calculate the actual distance to the ideal.
+  // This is the amount of distance Misty's head need to move.
+  const verticalDistance = idealBottom - bottom;
+  misty.Debug("Final cell phone: " + verticalDistance);
+
+  // 1 pitch = x image position unit.
+  const pitchToDistance = 7;
+
+  // Calculate the pitch Misty's head need to move
+  let headPitch = 0;
+  if (verticalDistance > 0) {
+    // Phone is too high, move head up
+    headPitch = verticalDistance / pitchToDistance;
+    if (headPitch > 40) {
+      headPitch = 40;
+    }
+  } else {
+    // Phone is too low, move head down
+    headPitch = verticalDistance / pitchToDistance;
+    if (headPitch > 26) {
+      headPitch = 26;
+    }
+  }
+  // Misty's pitch unit is inverted (up is negative, down is positive).
+  headPitch = headPitch * -1;
+
+  // Move Misty's head based on calculation.
+  misty.MoveHead(headPitch, 0, 0);
+  misty.Pause(1000);
+}
+
 /**
  * Misty takes picture and sends it to the local server to validate TraceTogether certificate.
  */
 function checkTraceTogether() {
-  // Move head up
-  misty.MoveHeadRadians(-0.25, 0, 0);
-  misty.Pause(1000);
-
   // Give feedback to the user that Misty is taking picture.
   misty.DisplayImage("e_SystemCamera.jpg");
   misty.PlayAudio("s_SystemCameraShutter.wav", 10);
@@ -159,7 +214,7 @@ function sendTraceTogetherImage(base64) {
     _params.baseUrl + "/check",
     null,
     null,
-    JSON.stringify({ image: base64 }),
+    JSON.stringify({ image: base64, serial: robotSerialNumber() }),
     "false",
     "false",
     "filename.png",
@@ -194,6 +249,7 @@ function _TraceTogetherResult(data) {
 function handleTraceTogetherResult({
   dateValid,
   locationValid,
+  location,
   checkIn,
   safeEntry,
   vaccinated,
@@ -213,21 +269,21 @@ function handleTraceTogetherResult({
 
   // Check date and location
   if (dateValid && locationValid) {
-    feedback(true, false);
+    feedback(true, false, location);
   } else {
     feedback(true, true, "Sorry! Make sure location and date is valid");
   }
 }
 
-function feedback(foundPhone, error, reason) {
+function feedback(foundPhone, error, reasonOrLocation) {
   const isValidCert = foundPhone && !error;
   let speechFeedback = "";
   if (!foundPhone) {
     speechFeedback = "Please hold your phone like this";
   } else {
     speechFeedback = isValidCert
-      ? "Thank you! Welcome to NTU - N3 AND N4 CLUSTER"
-      : reason;
+      ? "Thank you! Welcome to " + reasonOrLocation
+      : reasonOrLocation;
   }
 
   // Speech feedback
