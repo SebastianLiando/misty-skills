@@ -14,9 +14,40 @@ function robotSerialNumber(serial) {
 
 misty.UnregisterAllEvents();
 misty.EnableCameraService();
+misty.SetDefaultVolume(10);
+// Adjust the text layer, so that texts are in the bottom.
+misty.SetTextDisplaySettings(
+  null,
+  false,
+  false,
+  true,
+  1,
+  33,
+  400,
+  true,
+  "Center",
+  "Bottom",
+  "Normal",
+  255,
+  255,
+  255,
+  480,
+  40
+);
 
+feedbackIdle();
 // Fetch information of the robot.
 misty.GetDeviceInformation();
+
+function feedbackIdle() {
+  misty.DisplayText("Idle...");
+  misty.ChangeLED(0, 0, 0);
+}
+
+function feedbackDetectedPerson() {
+  misty.DisplayText("Please show TraceTogether");
+  misty.TransitionLED(0, 0, 0, 0, 255, 0, "Breathe", 1000);
+}
 
 function _GetDeviceInformation(data) {
   // Get the serial number, and save it to the state.
@@ -41,9 +72,12 @@ function _OnUserCloseBy({ closeBy, distance }) {
     misty.RegisterEvent("OnCellPhone", "ObjectDetection", 10, true);
     misty.StartObjectDetector(0.7, 0, 15);
     misty.Set("lock", false);
+
+    feedbackDetectedPerson();
   } else {
     misty.UnregisterEvent("OnCellPhone");
     misty.StopObjectDetector();
+    feedbackIdle();
   }
 }
 
@@ -61,7 +95,8 @@ function _OnCellPhone(data) {
     return;
   }
 
-  misty.Speak("Hold steady", true);
+  misty.Speak("Hold steady", 1, 1, "default", true);
+  misty.DisplayText("Hold steady...");
   misty.RegisterTimerEvent("OnTakePicture", 2000, false);
 }
 
@@ -69,6 +104,7 @@ function _OnCellPhone(data) {
  * Callback for cell phone detection.
  */
 function _OnTakePicture() {
+  misty.DisplayText("");
   // Adjust Misty's head.
   adjustHeadToPhone();
   // Take photo and check TT certificate.
@@ -153,7 +189,7 @@ function adjustHeadToPhone() {
   misty.Debug("Final cell phone: " + verticalDistance);
 
   // 1 pitch = x image position unit.
-  const pitchToDistance = 7;
+  const pitchToDistance = 5;
 
   // Calculate the pitch Misty's head need to move
   let headPitch = 0;
@@ -232,6 +268,11 @@ function _TraceTogetherResult(data) {
   misty.ChangeLED(0, 0, 0);
   misty.DisplayImage("e_DefaultContent.jpg");
 
+  if (data.Status !== 3) {
+    misty.Speak("Server error! Please contact administrator.");
+    return;
+  }
+
   // Parse the response.
   const response = JSON.parse(data.Result.ResponseObject.Data);
   misty.Debug(JSON.stringify(response));
@@ -261,11 +302,11 @@ function handleTraceTogetherResult({
     return;
   }
 
-  // Not fully vaccinated cannot enter
-  if (!vaccinated) {
-    feedback(true, true, "Sorry! You are not fully vaccinated");
-    return;
-  }
+  // Not fully vaccinated feedback. uncomment if visitor must be fully vaccinated.
+  // if (!vaccinated) {
+  //   feedback(true, true, "Sorry! You are not fully vaccinated");
+  //   return;
+  // }
 
   // Check date and location
   if (dateValid && locationValid) {
@@ -278,16 +319,24 @@ function handleTraceTogetherResult({
 function feedback(foundPhone, error, reasonOrLocation) {
   const isValidCert = foundPhone && !error;
   let speechFeedback = "";
+  let textFeedback = "";
   if (!foundPhone) {
-    speechFeedback = "Please hold your phone like this";
+    speechFeedback =
+      "Cannot find phone. Please hold your phone like this and try again.";
+    textFeedback = "Phone not found! Please try again";
   } else {
     speechFeedback = isValidCert
       ? "Thank you! Welcome to " + reasonOrLocation
       : reasonOrLocation;
+
+    textFeedback = isValidCert ? "Welcome!" : reasonOrLocation;
   }
 
   // Speech feedback
   misty.Speak(speechFeedback, 1, 1, "default", false, getTTFeedbackSpeechId());
+
+  // Display text feedback
+  misty.DisplayText(textFeedback);
 
   // Expression feedback
   let expr = "e_Admiration.jpg";
@@ -335,4 +384,5 @@ function _OnTraceTogetherFeedbackEnd(data) {
   misty.ChangeLED(0, 0, 0); // Default LED
 
   misty.Set("lock", false);
+  feedbackDetectedPerson();
 }
