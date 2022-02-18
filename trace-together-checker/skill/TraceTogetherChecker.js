@@ -138,15 +138,19 @@ function _ServerCheck(data) {
   if (status === 3) {
     // If successful -> setup the skill
     misty.Debug("Success!");
-    misty.Speak("Connected to the Server", true);
+    misty.Speak("Connected to the Server");
     setupSkill();
   } else {
     // If fail -> retry to call the home endpoint.
     misty.Debug("Error!");
     misty.Debug(data.ErrorMessage);
-    misty.Speak("Unable to connect to the server, retrying", true);
-    callHomeEndpoint();
+    misty.Speak("Failed to connect to the server, retrying in 10 seconds");
+    misty.RegisterTimerEvent("RetryConnection", 10000, false);
   }
+}
+
+function _RetryConnection() {
+  callHomeEndpoint();
 }
 
 function setupSkill() {
