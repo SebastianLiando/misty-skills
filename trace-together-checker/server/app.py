@@ -3,7 +3,8 @@ import fastapi
 from datetime import datetime
 from pydantic import BaseModel
 from io import BytesIO
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from ws import WSConnectionManager
 import uvicorn
 import pytesseract
 
@@ -15,11 +16,40 @@ from image_processing import crop_bbox, save_image, unsharp_mask, load_image, co
 from config import get_location_for_robot
 
 app = FastAPI()
+manager = WSConnectionManager()
 
 
 @app.get("/")
-def home():
+async def home():
     return {"Server": True}
+
+
+@app.websocket('/')
+async def websocket_endpoint(socket: WebSocket):
+    await manager.connect(socket)
+    print(f'Client connected.')
+
+    try:
+        while True:
+            await socket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(socket)
+        print('Client disconnected.')
+
+
+class RobotState(BaseModel):
+    robot_id: str
+    state: str
+
+
+@app.post('/state')
+async def robot_state_update(data: RobotState):
+    body = {
+        'type': 'ROBOT_STATE',
+        'data': data.json()
+    }
+
+    await manager.broadcast_json(body)
 
 
 class TraceTogetherImage(BaseModel):
@@ -60,7 +90,7 @@ def check_trace_together(data: TraceTogetherImage):
     ymin, ymax = detected_phone['ymin'], detected_phone['ymax']
 
     cropped = crop_bbox(image, xmin, xmax, ymin, ymax)
-    enhanced = unsharp_mask(cropped, round=3)
+    enhanced = unsharp_mask(cropped, round=4)
     save_image(cropped, path=f'{img_path}/cropped.jpg')
     save_image(enhanced, path=f'{img_path}/enhanced.jpg')
 
