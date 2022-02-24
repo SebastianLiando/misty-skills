@@ -1,9 +1,9 @@
 import os
-import fastapi
 from datetime import datetime
 from pydantic import BaseModel
 from io import BytesIO
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi.responses import FileResponse
 from ws import WSConnectionManager
 import uvicorn
 import pytesseract
@@ -82,7 +82,7 @@ def check_trace_together(data: TraceTogetherImage):
     detected_phone = detect_mobile_phone(image)
 
     if detected_phone == None:
-        raise fastapi.HTTPException(
+        raise HTTPException(
             status_code=404, detail="Mobile phone not detected")
 
     # Crop the image and save it
@@ -134,6 +134,29 @@ def check_trace_together(data: TraceTogetherImage):
     print(response)
     return response
 
+
+@app.get("/images/{image_id}/{file_name}")
+async def get_tt_image(image_id: str, file_name: str):
+    """Returns a TraceTogether image.
+
+    Args:
+        image_id (str): The image id.
+        file_name (str): The actual file name. 
+
+    Raises:
+        HTTPException: If the file does not exists.
+
+    Returns:
+        The image file.
+    """
+    # Path of the image
+    path = os.path.dirname(__file__) + f"/images/{image_id}/{file_name}"
+
+    # Check if the file exists
+    if not os.path.exists(path):
+        raise HTTPException(404)
+
+    return FileResponse(path)
 
 if __name__ == "__main__":
     # Run this script on port 8000 (default port number)
