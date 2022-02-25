@@ -2,9 +2,9 @@ from dataclasses import dataclass
 from enum import Enum
 from datetime import datetime
 from typing import Optional
-from bson.objectid import ObjectId
-from .mongo import MongoRepository, DEFAULT_CLIENT, DB_NAME, Singleton
+from .mongo import MongoRepository, DEFAULT_CLIENT, DB_NAME
 from pymongo import MongoClient, ASCENDING
+from dependencies import Singleton
 
 
 class RobotState(Enum):
@@ -61,6 +61,7 @@ class Robot:
 class RobotRepository(MongoRepository, metaclass=Singleton):
     def __init__(self, client: MongoClient = DEFAULT_CLIENT, db_name: str = DB_NAME) -> None:
         super().__init__(client, db_name)
+        print('Creating RobotRepository')
 
         # Create unique index on the serial number.
         self.collection.create_index(

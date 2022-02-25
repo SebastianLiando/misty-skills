@@ -55,13 +55,3 @@ class MongoRepository():
     def delete(self, id):
         target_id = self._parse_id(id)
         return self.from_json(self.collection.find_one_and_delete(target_id))
-
-
-class Singleton(type):
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(
-                Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
