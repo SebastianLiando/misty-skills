@@ -1,9 +1,9 @@
-import pymongo
-from bson.objectid import ObjectId
+from pymongo import MongoClient
+from bson import ObjectId
 
 # The name of the database.
 DB_NAME = 'misty_tracer'
-DEFAULT_CLIENT = pymongo.MongoClient(
+DEFAULT_CLIENT = MongoClient(
     host='localhost',
     port=27017,
     connect=False  # Lazy connect on the first operation
@@ -11,7 +11,7 @@ DEFAULT_CLIENT = pymongo.MongoClient(
 
 
 class MongoRepository():
-    def __init__(self, client: pymongo.MongoClient = DEFAULT_CLIENT, db_name: str = DB_NAME) -> None:
+    def __init__(self, client: MongoClient = DEFAULT_CLIENT, db_name: str = DB_NAME) -> None:
         database = client.get_database(db_name)
         self.collection = database[self.collection_name]
 
