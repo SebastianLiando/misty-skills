@@ -1,3 +1,4 @@
+from matplotlib.image import thumbnail
 from app_utils.validator import is_check_in, is_safe_entry, is_date_valid, is_location_valid
 from app_utils.detector import detect_mobile_phone
 import base64
@@ -7,7 +8,7 @@ from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
-from app_utils.image_processing import get_trace_together_image_path, load_image, save_image, crop_bbox, color_correct, get_green_ratio, unsharp_mask, read_string_in_image
+from app_utils.image_processing import get_trace_together_image_path, load_image, save_image, resize_image, crop_bbox, color_correct, get_green_ratio, unsharp_mask, read_string_in_image
 from database.robot import RobotRepository
 from database.verification import Verification, VerificationRepository
 
@@ -135,6 +136,10 @@ async def check_trace_together(data: VerificationPayload):
     save_image(cropped, verification.id, 'cropped.jpg')
     save_image(enhanced, verification.id, 'enhanced.jpg')
     save_image(mask, verification.id, 'mask.jpg')
+
+    # Save thumbnail image
+    thumbnail = resize_image(original_image, height=512)
+    save_image(thumbnail, verification.id, 'thumbnail.jpg')
 
     response = verification.to_json()
 
