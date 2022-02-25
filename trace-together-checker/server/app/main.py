@@ -1,9 +1,10 @@
 from fastapi import FastAPI
-from routers import robot
+from routers import robot, trace_together
 import uvicorn
 
 app = FastAPI()
 app.include_router(robot.router)
+app.include_router(trace_together.router)
 
 
 @app.get("/")
