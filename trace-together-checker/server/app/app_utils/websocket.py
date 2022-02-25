@@ -1,9 +1,10 @@
 from typing import List
 from fastapi import WebSocket
 import json
+from dependencies import Singleton
 
 
-class WSConnectionManager:
+class WSConnectionManager(metaclass=Singleton):
     def __init__(self):
         self.active_connections: List[WebSocket] = []
 
