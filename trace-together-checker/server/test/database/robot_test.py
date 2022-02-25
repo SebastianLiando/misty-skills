@@ -10,14 +10,14 @@ robots = [
     {
         "_id": ObjectId('5edf1cd43260aab97ea0d588'),
         'serial': '123',
-        'location': '1',
+        'location': '',
         'current_state': RobotState.PENDING.value,
         'state_updated_at': datetime(2000, 1, 1)
     },
     {
         "_id": ObjectId('5edf1cd43260aab97ea0d589'),
         'serial': '456',
-        'location': '2',
+        'location': '',
         'current_state': RobotState.PENDING.value,
         'state_updated_at': datetime(2000, 1, 1)
     },
@@ -52,3 +52,18 @@ def test_update_state(repo):
     assert robot.current_state == RobotState.ACCEPT and \
         robot.state_updated_at.timestamp(
         ) > robots[0]['state_updated_at'].timestamp()
+
+
+def test_update_location_sets_to_uppercase(repo):
+    location = 'hello-world'
+    expected_location = 'HELLO-WORLD'
+    robot = repo.update_location(robots[0]['serial'], location)
+
+    assert robot.location == expected_location and robot.location.isupper()
+
+
+def test_update_location_first_time_sets_state_to_idle(repo):
+    repo.update_state(robots[0]['serial'], RobotState.PENDING)
+    robot = repo.update_location(robots[0]['serial'], 'something')
+
+    assert robot.current_state == RobotState.IDLE
