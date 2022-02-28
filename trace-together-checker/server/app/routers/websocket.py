@@ -1,14 +1,11 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from app_utils.websocket import WSConnectionManager, MessageTypes
+from app_utils.websocket import WSConnectionManager, MessageTypes, TOPIC_ROBOT, TOPIC_VERIFICATION
 from database.robot import RobotRepository
 from database.verification import VerificationRepository
 import json
 
 manager = WSConnectionManager()
 router = APIRouter(prefix='/ws', tags=['WebSocket'])
-
-TOPIC_ROBOT = 'ROBOT'
-TOPIC_VERIFICATION = 'VERIFICATION'
 
 async def process_topic_data(client: WebSocket, message_type: str, verifications: dict):
     try:

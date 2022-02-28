@@ -13,6 +13,10 @@ class MessageTypes(Enum):
     UNSUBSCRIBE = 'UNSUBSCRIBE'
 
 
+TOPIC_ROBOT = 'ROBOT'
+TOPIC_VERIFICATION = 'VERIFICATION'
+
+
 class DateTimeEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, datetime):
