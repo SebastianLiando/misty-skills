@@ -1,4 +1,3 @@
-from matplotlib.image import thumbnail
 from app_utils.validator import is_check_in, is_safe_entry, is_date_valid, is_location_valid
 from app_utils.detector import detect_mobile_phone
 import base64
@@ -9,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
 from app_utils.image_processing import get_trace_together_image_path, load_image, save_image, resize_image, crop_bbox, color_correct, get_green_ratio, unsharp_mask, read_string_in_image
+from app_utils.websocket import WSConnectionManager, TOPIC_VERIFICATION
 from database.robot import RobotRepository
 from database.verification import Verification, VerificationRepository
 
@@ -141,7 +141,10 @@ async def check_trace_together(data: VerificationPayload):
     thumbnail = resize_image(original_image, height=512)
     save_image(thumbnail, verification.id, 'thumbnail.jpg')
 
-    response = verification.to_json()
+    # Notify subscribers
+    manager = WSConnectionManager()
+    await manager.publish_data(TOPIC_VERIFICATION, verification)
 
+    response = verification.to_json()
     print(response)
     return response

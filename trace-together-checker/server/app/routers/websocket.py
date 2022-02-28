@@ -7,6 +7,7 @@ import json
 manager = WSConnectionManager()
 router = APIRouter(prefix='/ws', tags=['WebSocket'])
 
+
 async def process_topic_data(client: WebSocket, message_type: str, verifications: dict):
     try:
         parsed = MessageTypes(message_type.upper())
