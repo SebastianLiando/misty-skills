@@ -143,7 +143,7 @@ async def check_trace_together(data: VerificationPayload):
 
     # Notify subscribers
     manager = WSConnectionManager()
-    await manager.publish_data(TOPIC_VERIFICATION, verification)
+    await manager.publish_subscription_data(TOPIC_VERIFICATION, verification)
 
     response = verification.to_json()
     print(response)

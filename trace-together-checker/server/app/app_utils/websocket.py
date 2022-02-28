@@ -64,7 +64,7 @@ class WSConnectionManager(metaclass=Singleton):
         for subscriber in self.subscriptions[topic]:
             await self.send_personal_message(message, subscriber)
 
-    async def publish_data(self, topic: str, data):
+    async def publish_subscription_data(self, topic: str, data):
         body = {
             'type': MessageTypes.SUBSCRIPTION_DATA.value,
             'data': {

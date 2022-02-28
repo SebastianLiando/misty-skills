@@ -14,7 +14,7 @@ router = APIRouter(
 async def _notify_robot_subscribers(robot: Robot):
     """Notify all subscribers of robot topic."""
     manager = WSConnectionManager()
-    await manager.publish_data(TOPIC_ROBOT, robot)
+    await manager.publish_subscription_data(TOPIC_ROBOT, robot)
 
 
 @router.get('/{serial}')
