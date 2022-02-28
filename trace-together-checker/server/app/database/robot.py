@@ -61,7 +61,6 @@ class Robot:
 class RobotRepository(MongoRepository, metaclass=Singleton):
     def __init__(self, client: MongoClient = DEFAULT_CLIENT, db_name: str = DB_NAME) -> None:
         super().__init__(client, db_name)
-        print('Creating RobotRepository')
 
         # Create unique index on the serial number.
         self.collection.create_index(
