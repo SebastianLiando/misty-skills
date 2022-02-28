@@ -22,7 +22,6 @@ async def process_topic_data(client: WebSocket, message_type: str, verifications
         if topic == TOPIC_ROBOT:
             repo = RobotRepository()
             robots = repo.list()
-            robots = list(map(lambda r: r.to_json(), robots))
             await manager.send_personal_message(robots, client)
         elif topic == TOPIC_VERIFICATION:
             repo = VerificationRepository()

@@ -1,5 +1,6 @@
 from typing import Optional
-from database.robot import RobotRepository, RobotState
+from database.robot import RobotRepository, RobotState, Robot
+from app_utils.websocket import WSConnectionManager, TOPIC_ROBOT
 from fastapi import APIRouter, HTTPException
 
 from pydantic import BaseModel
@@ -8,6 +9,12 @@ router = APIRouter(
     prefix="/robot",
     tags=['Robot']
 )
+
+
+async def _notify_robot_subscribers(robot: Robot):
+    """Notify all subscribers of robot topic."""
+    manager = WSConnectionManager()
+    await manager.publish_data(TOPIC_ROBOT, robot)
 
 
 @router.get('/{serial}')
@@ -22,8 +29,9 @@ async def register_robot(serial):
         # Existing robot - update the state
         # If location has been assigned, immediately skip to idle state.
         new_state = RobotState.IDLE if robot.location != '' else RobotState.PENDING
-        repo.update_state(robot.serial, new_state)
+        robot = repo.update_state(robot.serial, new_state)
 
+    await _notify_robot_subscribers(robot)
     return robot.to_json()
 
 
@@ -58,4 +66,5 @@ async def update_robot(serial: str, payload: UpdateRobotPayload):
         raise HTTPException(
             status_code=400, detail='Nothing to update! Please specify location or state update.')
 
+    await _notify_robot_subscribers(robot)
     return robot.to_json()
