@@ -39,13 +39,12 @@ def restart_heartbeat_timer(serial):
     # Stop ongoing timer if any
     if serial in heartbeats.keys():
         heartbeats[serial].cancel()
-        print(f'({serial}): Restarting timer')
-    else:
-        print(f'({serial}): Starting timer')
 
     # Create and start a new timer
     timer = asyncio.create_task(_heartbeat_timeout(serial))
     heartbeats[serial] = timer
+
+    print(f'({serial}): Starting timer')
 
 
 @router.get('/{serial}')
