@@ -171,6 +171,10 @@ function _OnUserCloseBy({ closeBy, distance }) {
     // Set state
     personNearby(true);
 
+    // Feedback to user
+    feedbackDetectedPerson();
+    greetUser();
+
     // Give instruction to the user.
     misty.Speak("Please show your check-in certificate", true);
 
@@ -186,8 +190,6 @@ function _OnUserCloseBy({ closeBy, distance }) {
     misty.RegisterEvent("OnCellPhone", "ObjectDetection", 10, true);
     misty.StartObjectDetector(0.7, 0, 15);
     phoneDetectionLock(false);
-
-    feedbackDetectedPerson();
   } else {
     // Set state
     personNearby(false);
@@ -452,12 +454,16 @@ function feedback(foundPhone, error, reasonOrLocation) {
   }
 }
 
-function _OnTraceTogetherFeedbackEnd(data) {
-  // Reset Misty to default stance
+function defaultStance() {
   misty.DisplayImage("e_DefaultContent.jpg"); // Default expression
   misty.MoveHead(0, 0, 0, 100); // Default head position
   misty.MoveArms(45, 45, 100, 100); // Default arms position
   misty.ChangeLED(0, 0, 0); // Default LED
+}
+
+function _OnTraceTogetherFeedbackEnd(data) {
+  // Reset Misty to default stance
+  defaultStance();
 
   // Allow the next verification.
   phoneDetectionLock(false);
@@ -468,4 +474,17 @@ function _OnTraceTogetherFeedbackEnd(data) {
   } else {
     feedbackIdle();
   }
+}
+
+function greetUser() {
+  misty.PlayAudio("s_PhraseHello.wav", 10);
+  misty.ChangeLED(255, 20, 147);
+  misty.DisplayImage("e_Admiration.jpg");
+  misty.MoveArm("right", -90, 100);
+  // Pitch, roll, yaw
+  misty.MoveHead(0, 40, 0, 100);
+
+  // Reset misty movements
+  misty.Pause(1800);
+  defaultStance();
 }
