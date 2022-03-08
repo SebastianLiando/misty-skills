@@ -55,9 +55,89 @@ function _GetDeviceInformation(data) {
   robotSerialNumber(result.SerialNumber);
 }
 
+/**
+ * Send GET request to the server's home endpoint.
+ * The URL is specified in the parameter of the skill.
+ */
+function callHomeEndpoint() {
+  misty.SendExternalRequest(
+    "GET",
+    _params.baseUrl + "/robot/" + robotSerialNumber(),
+    null,
+    null,
+    JSON.stringify({}),
+    "false",
+    "false",
+    "filename.png",
+    "application/json",
+    "_ServerCheck" // Name of the callback function
+  );
+}
+
+callHomeEndpoint();
+
+function _ServerCheck(data) {
+  const status = data.Status;
+
+  if (status === 3) {
+    // If successful -> setup the skill
+    // Parse the response.
+    const robotData = JSON.parse(data.Result.ResponseObject.Data);
+    misty.Debug(robotData);
+
+    if (robotData["location"] == "") {
+      // Robot location is not set.
+      // Administrator needs to set this value before continuing.
+      feedbackPending();
+      misty.RegisterTimerEvent("RetryConnection", 10000, false);
+      return;
+    }
+
+    misty.Debug("Success!");
+    misty.Speak("Connected to the Server");
+    setupSkill();
+  } else {
+    // If fail -> retry to call the home endpoint.
+    misty.Debug("Error!");
+    misty.Debug(data.ErrorMessage);
+    misty.Speak("Failed to connect to the server, retrying in 10 seconds");
+    misty.RegisterTimerEvent("RetryConnection", 10000, false);
+  }
+}
+
+function feedbackPending() {
+  misty.Speak(
+    "Robot location is not set. Please use the administrator app to set the location." +
+      "Retrying in 10 seconds."
+  );
+  misty.DisplayText("Set robot location in app");
+}
+
+function _RetryConnection() {
+  callHomeEndpoint();
+}
+
+function setupSkill() {
+  // Listen to touch sensor on Misty's head.
+  misty.AddReturnProperty("OnTouch", "sensorPosition");
+  misty.RegisterEvent("OnTouch", "TouchSensor", 1000, true);
+
+  // Listen to speech feedback completion.
+  misty.RegisterEvent(
+    "OnTraceTogetherFeedbackEnd",
+    "TextToSpeechComplete",
+    100,
+    true
+  );
+
+  // Run user detection skill
+  misty.RegisterUserEvent("OnUserCloseBy", true);
+  misty.RunSkill("29e71806-c2f7-46f4-b185-976dd0da3b27");
+}
+
 function _OnUserCloseBy({ closeBy, distance }) {
-  // Give instruction to the user.
   if (closeBy) {
+    // Give instruction to the user.
     misty.Speak("Please show your check-in certificate", true);
 
     misty.AddPropertyTest(
@@ -109,66 +189,6 @@ function _OnTakePicture() {
   adjustHeadToPhone();
   // Take photo and check TT certificate.
   checkTraceTogether();
-}
-
-/**
- * Send GET request to the server's home endpoint.
- * The URL is specified in the parameter of the skill.
- */
-function callHomeEndpoint() {
-  misty.SendExternalRequest(
-    "GET",
-    _params.baseUrl,
-    null,
-    null,
-    JSON.stringify({}),
-    "false",
-    "false",
-    "filename.png",
-    "application/json",
-    "_ServerCheck" // Name of the callback function
-  );
-}
-
-callHomeEndpoint();
-
-function _ServerCheck(data) {
-  const status = data.Status;
-
-  if (status === 3) {
-    // If successful -> setup the skill
-    misty.Debug("Success!");
-    misty.Speak("Connected to the Server");
-    setupSkill();
-  } else {
-    // If fail -> retry to call the home endpoint.
-    misty.Debug("Error!");
-    misty.Debug(data.ErrorMessage);
-    misty.Speak("Failed to connect to the server, retrying in 10 seconds");
-    misty.RegisterTimerEvent("RetryConnection", 10000, false);
-  }
-}
-
-function _RetryConnection() {
-  callHomeEndpoint();
-}
-
-function setupSkill() {
-  // Listen to touch sensor on Misty's head.
-  misty.AddReturnProperty("OnTouch", "sensorPosition");
-  misty.RegisterEvent("OnTouch", "TouchSensor", 1000, true);
-
-  // Listen to speech feedback completion.
-  misty.RegisterEvent(
-    "OnTraceTogetherFeedbackEnd",
-    "TextToSpeechComplete",
-    100,
-    true
-  );
-
-  // Run user detection skill
-  misty.RegisterUserEvent("OnUserCloseBy", true);
-  misty.RunSkill("29e71806-c2f7-46f4-b185-976dd0da3b27");
 }
 
 function _OnTouch(data) {
@@ -251,7 +271,7 @@ function _TakePicture(data) {
 function sendTraceTogetherImage(base64) {
   misty.SendExternalRequest(
     "POST",
-    _params.baseUrl + "/check",
+    _params.baseUrl + "/trace-together/verify",
     null,
     null,
     JSON.stringify({ image: base64, serial: robotSerialNumber() }),
@@ -292,12 +312,12 @@ function _TraceTogetherResult(data) {
 }
 
 function handleTraceTogetherResult({
-  dateValid,
-  locationValid,
-  location,
-  checkIn,
-  safeEntry,
-  vaccinated,
+  dateValid: date_valid,
+  locationValid: location_valid,
+  location: location_actual,
+  checkIn: check_in,
+  safeEntry: safe_entry,
+  vaccinated: fully_vaccinated,
 }) {
   // Make sure it is a trace-together check-in certificate
   const isCheckInCert = (checkIn && safeEntry) || vaccinated;
