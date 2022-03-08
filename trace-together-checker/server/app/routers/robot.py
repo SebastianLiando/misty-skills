@@ -52,6 +52,7 @@ async def update_robot(serial: str, payload: UpdateRobotPayload):
     new_state = payload.state
     if new_state is not None:
         robot = repo.update_state(serial, new_state)
+        print(f'State update for {robot.serial}: {robot.current_state}')
 
     new_location = payload.location
     if new_location is not None:
