@@ -21,6 +21,22 @@ function personNearby(nearby) {
   return getOrSetState("person-nearby", nearby);
 }
 
+function publishState(state) {
+  misty.SendExternalRequest(
+    "POST",
+    _params.baseUrl + "/robot/" + robotSerialNumber(),
+    null,
+    null,
+    JSON.stringify({
+      state: state.toString(),
+    }),
+    "false",
+    "false",
+    "filename.png",
+    "application/json"
+  );
+}
+
 misty.UnregisterAllEvents();
 misty.EnableCameraService();
 misty.SetDefaultVolume(10);
@@ -49,11 +65,13 @@ feedbackIdle();
 misty.GetDeviceInformation();
 
 function feedbackIdle() {
+  publishState("IDLE");
   misty.DisplayText("Idle...");
   misty.ChangeLED(0, 0, 0);
 }
 
 function feedbackDetectedPerson() {
+  publishState("ENGAGING");
   misty.DisplayText("Please show TraceTogether");
   misty.TransitionLED(0, 0, 0, 0, 255, 0, "Breathe", 1000);
 }
@@ -115,6 +133,7 @@ function _ServerCheck(data) {
 }
 
 function feedbackPending() {
+  publishState("PENDING");
   misty.Speak(
     "Robot location is not set. Please use the administrator app to set the location." +
       "Retrying in 10 seconds."
@@ -203,6 +222,8 @@ function _OnCellPhone(data) {
  */
 function _OnTakePicture() {
   misty.DisplayText("");
+  publishState("CAPTURING");
+
   // Adjust Misty's head.
   adjustHeadToPhone();
   // Take photo and check TT certificate.
@@ -302,6 +323,7 @@ function sendTraceTogetherImage(base64) {
 
   // Show processing feedback
   misty.TransitionLED(0, 0, 255, 0, 0, 0, "Breathe", 500);
+  publishState("VERIFYING");
   misty.DisplayImage("a_Scanning.gif");
 }
 
@@ -322,6 +344,7 @@ function _TraceTogetherResult(data) {
   // Check for errors in detection
   const errorDetail = response["detail"];
   if (errorDetail) {
+    publishState("REJECT");
     feedback(false);
   } else {
     // If no error, process the response
@@ -347,12 +370,14 @@ function handleTraceTogetherResult({
   // Make sure it is a trace-together check-in certificate
   const isCheckInCert = (checkIn && safeEntry) || vaccinated;
   if (!isCheckInCert) {
+    publishState("REJECT");
     feedback(true, true, "Sorry! Invalid trace together check-in certificate");
     return;
   }
 
   // Not fully vaccinated feedback. uncomment if visitor must be fully vaccinated.
   // if (!vaccinated) {
+  //   publishState('REJECT')
   //   feedback(true, true, "Sorry! You are not fully vaccinated");
   //   return;
   // }
@@ -412,11 +437,13 @@ function feedback(foundPhone, error, reasonOrLocation) {
   // Head feedback
   if (isValidCert) {
     // Bow head
+    publishState("ACCEPT");
     misty.MoveHead(20, 0, 0);
     misty.Pause(1000);
     misty.MoveHead(0, 0, 0);
   } else if (foundPhone && error) {
     // Shake head
+    publishState("REJECT");
     misty.MoveHead(0, 0, 20);
     misty.Pause(500);
     misty.MoveHead(0, 0, -20);
