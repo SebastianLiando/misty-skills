@@ -62,6 +62,8 @@ function _GetDeviceInformation(data) {
   // Get the serial number, and save it to the state.
   const result = data.Result;
   robotSerialNumber(result.SerialNumber);
+
+  callHomeEndpoint();
 }
 
 /**
@@ -83,8 +85,6 @@ function callHomeEndpoint() {
   );
 }
 
-callHomeEndpoint();
-
 function _ServerCheck(data) {
   const status = data.Status;
 
@@ -98,7 +98,7 @@ function _ServerCheck(data) {
       // Robot location is not set.
       // Administrator needs to set this value before continuing.
       feedbackPending();
-      misty.RegisterTimerEvent("RetryConnection", 10000, false);
+      misty.RegisterTimerEvent("RetryConnection", 20000, false);
       return;
     }
 
@@ -119,6 +119,7 @@ function feedbackPending() {
     "Robot location is not set. Please use the administrator app to set the location." +
       "Retrying in 10 seconds."
   );
+  misty.ChangeLED(255, 0, 0);
   misty.DisplayText("Set robot location in app");
 }
 
@@ -127,6 +128,8 @@ function _RetryConnection() {
 }
 
 function setupSkill() {
+  feedbackIdle();
+
   // Listen to touch sensor on Misty's head.
   misty.AddReturnProperty("OnTouch", "sensorPosition");
   misty.RegisterEvent("OnTouch", "TouchSensor", 1000, true);
@@ -327,13 +330,20 @@ function _TraceTogetherResult(data) {
 }
 
 function handleTraceTogetherResult({
-  dateValid: date_valid,
-  locationValid: location_valid,
-  location: location_actual,
-  checkIn: check_in,
-  safeEntry: safe_entry,
-  vaccinated: fully_vaccinated,
+  date_valid,
+  location_valid,
+  location_actual,
+  check_in,
+  safe_entry,
+  fully_vaccinated,
 }) {
+  const dateValid = date_valid;
+  const locationValid = location_valid;
+  const location = location_actual;
+  const checkIn = check_in;
+  const vaccinated = fully_vaccinated;
+  const safeEntry = safe_entry;
+
   // Make sure it is a trace-together check-in certificate
   const isCheckInCert = (checkIn && safeEntry) || vaccinated;
   if (!isCheckInCert) {
@@ -422,6 +432,7 @@ function _OnTraceTogetherFeedbackEnd(data) {
   misty.MoveArms(45, 45, 100, 100); // Default arms position
   misty.ChangeLED(0, 0, 0); // Default LED
 
+  // Allow the next verification.
   phoneDetectionLock(false);
 
   // Check the latest person detection state
