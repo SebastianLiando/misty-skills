@@ -2,14 +2,23 @@ function getTTFeedbackSpeechId() {
   return "trace-together-feedback-speech";
 }
 
+function getOrSetState(key, setValue, persistent = false) {
+  if (setValue !== undefined) misty.Set(key, setValue, persistent);
+  return misty.Get(key);
+}
+
 function robotSerialNumber(serial) {
-  const KEY = "serial-number";
+  return getOrSetState("serial-number", serial);
+}
 
-  if (serial !== undefined) {
-    misty.Set(KEY, serial);
-  }
+// Lock to prevent multiple call of function for 1 cell phone.
+function phoneDetectionLock(locked) {
+  return getOrSetState("lock", locked);
+}
 
-  return misty.Get(KEY);
+// Latest state of nearby person.
+function personNearby(nearby) {
+  return getOrSetState("person-nearby", nearby);
 }
 
 misty.UnregisterAllEvents();
@@ -137,6 +146,9 @@ function setupSkill() {
 
 function _OnUserCloseBy({ closeBy, distance }) {
   if (closeBy) {
+    // Set state
+    personNearby(true);
+
     // Give instruction to the user.
     misty.Speak("Please show your check-in certificate", true);
 
@@ -151,10 +163,13 @@ function _OnUserCloseBy({ closeBy, distance }) {
     misty.AddReturnProperty("OnCellPhone", "imageLocationBottom");
     misty.RegisterEvent("OnCellPhone", "ObjectDetection", 10, true);
     misty.StartObjectDetector(0.7, 0, 15);
-    misty.Set("lock", false);
+    phoneDetectionLock(false);
 
     feedbackDetectedPerson();
   } else {
+    // Set state
+    personNearby(false);
+
     misty.UnregisterEvent("OnCellPhone");
     misty.StopObjectDetector();
     feedbackIdle();
@@ -164,10 +179,10 @@ function _OnUserCloseBy({ closeBy, distance }) {
 function _OnCellPhone(data) {
   const [name, bboxBottom] = data.AdditionalResults;
 
-  if (!misty.Get("lock")) {
+  if (!phoneDetectionLock()) {
     misty.Debug(name + ": " + bboxBottom);
     misty.Set("bottom", bboxBottom);
-    misty.Set("lock", true);
+    phoneDetectionLock(true);
   } else {
     // Update the bottom
     misty.Debug(name + ": " + bboxBottom);
@@ -407,6 +422,12 @@ function _OnTraceTogetherFeedbackEnd(data) {
   misty.MoveArms(45, 45, 100, 100); // Default arms position
   misty.ChangeLED(0, 0, 0); // Default LED
 
-  misty.Set("lock", false);
-  feedbackDetectedPerson();
+  phoneDetectionLock(false);
+
+  // Check the latest person detection state
+  if (personNearby()) {
+    feedbackDetectedPerson();
+  } else {
+    feedbackIdle();
+  }
 }
