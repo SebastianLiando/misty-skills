@@ -14,6 +14,7 @@ class MessageTypes(Enum):
     SUBSCRIBE = 'SUBSCRIBE'
     UNSUBSCRIBE = 'UNSUBSCRIBE'
     SUBSCRIPTION_DATA = 'SUBSCRIPTION_DATA'
+    CONNECTED = 'CONNECTED'
 
 
 TOPIC_ROBOT = 'ROBOT'
@@ -24,6 +25,8 @@ class AppEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, datetime):
             return o.isoformat()
+        elif isinstance(o, Enum):
+            return o.value
         elif isinstance(o, (Robot, Verification)):
             return o.to_json()
 

@@ -38,6 +38,12 @@ async def connect_websocket(socket: WebSocket):
     await manager.connect(socket)
     print(f'Client connected.')
 
+    # Notify client that you are connected
+    await manager.send_personal_message({
+        'type': MessageTypes.CONNECTED,
+        'data': {}
+    }, socket)
+
     try:
         while True:
             message = await socket.receive_text()
