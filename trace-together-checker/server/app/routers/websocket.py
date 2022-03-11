@@ -8,7 +8,7 @@ manager = WSConnectionManager()
 router = APIRouter(prefix='/ws', tags=['WebSocket'])
 
 
-async def process_topic_data(client: WebSocket, message_type: str, verifications: dict):
+async def process_topic_data(client: WebSocket, message_type: str, data: dict):
     try:
         parsed = MessageTypes(message_type.upper())
     except Exception:
@@ -16,20 +16,20 @@ async def process_topic_data(client: WebSocket, message_type: str, verifications
 
     if parsed == MessageTypes.SUBSCRIBE:
         # Add to subscriber list
-        topic = verifications['topic'].upper()
+        topic = data['topic'].upper()
         manager.subscribe(topic, client)
 
         # Publish the initial data
         if topic == TOPIC_ROBOT:
             repo = RobotRepository()
             robots = repo.list()
-            await manager.send_personal_message(robots, client)
+            await manager.publish_subscription_data(TOPIC_ROBOT, robots)
         elif topic == TOPIC_VERIFICATION:
             repo = VerificationRepository()
             verifications = repo.list()
             await manager.send_personal_message(verifications, client)
     elif parsed == MessageTypes.UNSUBSCRIBE:
-        topic = verifications['topic'].upper()
+        topic = data['topic'].upper()
         manager.unsubscribe(topic, client)
 
 

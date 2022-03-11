@@ -15,12 +15,13 @@ router = APIRouter(
 async def _notify_robot_subscribers(robot: Robot):
     """Notify all subscribers of robot topic."""
     manager = WSConnectionManager()
-    await manager.publish_subscription_data(TOPIC_ROBOT, robot)
+    await manager.publish_subscription_data(TOPIC_ROBOT, [robot])
 
 heartbeats: Dict[str, asyncio.Task] = {}
 
 
 async def _heartbeat_timeout(*args):
+    """Callback when heartbeat times out. This indicates that the robot is now offline."""
     serial = args[0]
 
     # Timeout in 10 seconds
@@ -29,7 +30,7 @@ async def _heartbeat_timeout(*args):
     repo = RobotRepository()
     robot = repo.update_state(serial, RobotState.OFFLINE)
     await _notify_robot_subscribers(robot)
-    print(f'{serial} is now offline')
+    print(f'({serial}): Offline')
 
 
 def restart_heartbeat_timer(serial):
