@@ -164,6 +164,25 @@ function setupSkill() {
   // Run user detection skill
   misty.RegisterUserEvent("OnUserCloseBy", true);
   misty.RunSkill("29e71806-c2f7-46f4-b185-976dd0da3b27");
+
+  // Start heartbeat
+  misty.RegisterTimerEvent("Heartbeat", 5000, true);
+}
+
+function _Heartbeat(data) {
+  misty.SendExternalRequest(
+    "POST",
+    _params.baseUrl + "/robot/heartbeat",
+    null,
+    null,
+    JSON.stringify({
+      serial: robotSerialNumber(),
+    }),
+    "false",
+    "false",
+    "filename.png",
+    "application/json"
+  );
 }
 
 function _OnUserCloseBy({ closeBy, distance }) {
@@ -172,8 +191,8 @@ function _OnUserCloseBy({ closeBy, distance }) {
     personNearby(true);
 
     // Feedback to user
-    feedbackDetectedPerson();
     greetUser();
+    feedbackDetectedPerson();
 
     // Give instruction to the user.
     misty.Speak("Please show your check-in certificate", true);
@@ -477,14 +496,14 @@ function _OnTraceTogetherFeedbackEnd(data) {
 }
 
 function greetUser() {
+  misty.DisplayText("")
   misty.PlayAudio("s_PhraseHello.wav", 10);
-  misty.ChangeLED(255, 20, 147);
   misty.DisplayImage("e_Admiration.jpg");
   misty.MoveArm("right", -90, 100);
   // Pitch, roll, yaw
   misty.MoveHead(0, 40, 0, 100);
 
   // Reset misty movements
-  misty.Pause(1800);
+  misty.Pause(2000);
   defaultStance();
 }
