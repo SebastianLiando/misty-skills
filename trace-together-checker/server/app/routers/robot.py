@@ -72,6 +72,20 @@ class UpdateRobotPayload(BaseModel):
     location: Optional[str]
     state: Optional[RobotState]
 
+class HeartbeatPayload(BaseModel):
+    serial: str
+
+
+@router.post('/heartbeat')
+async def heartbeat(payload: HeartbeatPayload):
+    serial = payload.serial
+    restart_heartbeat_timer(serial)
+    print(f'Heartbeat for {serial}')
+
+    return {
+        'heartbeat': True,
+        'serial': serial
+    }
 
 @router.post("/{serial}")
 async def update_robot(serial: str, payload: UpdateRobotPayload):
@@ -106,19 +120,3 @@ async def update_robot(serial: str, payload: UpdateRobotPayload):
 
     await _notify_robot_subscribers(robot)
     return robot.to_json()
-
-
-class HeartbeatPayload(BaseModel):
-    serial: str
-
-
-@router.post('/heartbeat')
-async def heartbeat(payload: HeartbeatPayload):
-    serial = payload.serial
-    restart_heartbeat_timer(serial)
-    print(f'Heartbeat for {serial}')
-
-    return {
-        'heartbeat': True,
-        'serial': serial
-    }

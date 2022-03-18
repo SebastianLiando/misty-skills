@@ -34,7 +34,7 @@ def is_safe_entry(ocr: str) -> bool:
 
 
 def is_date_valid(ocr_result: str) -> Tuple[bool, Optional[datetime]]:
-    """Returns `true` if the date is valid. Date is valid if it matches today."""
+    """Returns `true` if the date is valid. Date is valid if it matches the date the photo is taken."""
 
     # Find the date string.
     DATE_PATTERN = r"\d{1,2} \w{3}"
