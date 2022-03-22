@@ -113,10 +113,6 @@ class RobotRepository(MongoRepository, metaclass=Singleton):
     def update_location(self, serial: str, location: str) -> Robot:
         robot = self.get_by_serial(serial)
 
-        # If this is the first time assigning location, go to IDLE state from PENDING state.
-        if robot.location == '':
-            self._set_state(robot, RobotState.IDLE)
-
         robot.location = location.upper()
 
         return self.save(robot)
