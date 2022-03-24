@@ -37,6 +37,7 @@ class WSConnectionManager(metaclass=Singleton):
     def __init__(self):
         self.active_connections: Set[WebSocket] = set()
 
+        # { 'TOPIC1': (), 'TOPIC2: (), ... }
         self.subscriptions = defaultdict(lambda: set())
 
     async def connect(self, websocket: WebSocket):
@@ -62,12 +63,27 @@ class WSConnectionManager(metaclass=Singleton):
     def _json_to_str(self, body) -> str:
         return json.dumps(body, cls=AppEncoder)
 
-    async def publish(self, topic: str, body):
+    async def publish(self, topic: str, body, client = None):
         message = self._json_to_str(body)
+
+        # If targeted to specific client
+        if client != None:
+            await self.send_personal_message(message, client)
+            return
+
+        # Otherwise, send to all subscribers
         for subscriber in self.subscriptions[topic]:
             await self.send_personal_message(message, subscriber)
 
-    async def publish_subscription_data(self, topic: str, data: list):
+    async def publish_subscription_data(self, topic: str, data: list, client = None):
+        """Publishes subscription data for the given topic to all subscribers. 
+        If the client is given, send only to the given client.
+        
+        Args:
+            topic (str): The subscription topic.
+            data (list): The data to be sent.
+            client (optional): The specific client to send to. Defaults to None.
+        """
         body = {
             'type': MessageTypes.SUBSCRIPTION_DATA.value,
             'data': {
@@ -76,7 +92,7 @@ class WSConnectionManager(metaclass=Singleton):
             }
         }
 
-        await self.publish(topic, body)
+        await self.publish(topic, body, client)
 
     async def send_personal_message(self, message, websocket: WebSocket):
         body = message if isinstance(message, str) else \

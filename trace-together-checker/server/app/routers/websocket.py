@@ -23,11 +23,11 @@ async def process_topic_data(client: WebSocket, message_type: str, data: dict):
         if topic == TOPIC_ROBOT:
             repo = RobotRepository()
             robots = repo.list()
-            await manager.publish_subscription_data(TOPIC_ROBOT, robots)
+            await manager.publish_subscription_data(TOPIC_ROBOT, robots, client=client)
         elif topic == TOPIC_VERIFICATION:
             repo = VerificationRepository()
             verifications = repo.list()
-            await manager.send_personal_message(verifications, client)
+            await manager.publish_subscription_data(TOPIC_VERIFICATION, verifications, client=client)
     elif parsed == MessageTypes.UNSUBSCRIBE:
         topic = data['topic'].upper()
         manager.unsubscribe(topic, client)

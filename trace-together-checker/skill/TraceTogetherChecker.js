@@ -37,6 +37,28 @@ function publishState(state) {
   );
 }
 
+function feedbackIdle() {
+  publishState("IDLE");
+  misty.DisplayText("Idle...");
+  misty.ChangeLED(0, 0, 0);
+}
+
+function feedbackPending() {
+  publishState("PENDING");
+  misty.Speak(
+    "Robot location is not set. Please use the administrator app to set the location." +
+      "Retrying in 10 seconds."
+  );
+  misty.ChangeLED(255, 0, 0);
+  misty.DisplayText("Set robot location in app");
+}
+
+function feedbackDetectedPerson() {
+  publishState("ENGAGING");
+  misty.DisplayText("Please show TraceTogether");
+  misty.TransitionLED(0, 0, 0, 0, 255, 0, "Breathe", 1000);
+}
+
 misty.UnregisterAllEvents();
 misty.EnableCameraService();
 misty.SetDefaultVolume(10);
@@ -64,31 +86,19 @@ feedbackIdle();
 // Fetch information of the robot.
 misty.GetDeviceInformation();
 
-function feedbackIdle() {
-  publishState("IDLE");
-  misty.DisplayText("Idle...");
-  misty.ChangeLED(0, 0, 0);
-}
-
-function feedbackDetectedPerson() {
-  publishState("ENGAGING");
-  misty.DisplayText("Please show TraceTogether");
-  misty.TransitionLED(0, 0, 0, 0, 255, 0, "Breathe", 1000);
-}
-
 function _GetDeviceInformation(data) {
   // Get the serial number, and save it to the state.
   const result = data.Result;
   robotSerialNumber(result.SerialNumber);
 
-  callHomeEndpoint();
+  callRegisterRobotEndpoint();
 }
 
 /**
  * Send GET request to the server's home endpoint.
  * The URL is specified in the parameter of the skill.
  */
-function callHomeEndpoint() {
+function callRegisterRobotEndpoint() {
   misty.SendExternalRequest(
     "GET",
     _params.baseUrl + "/robot/" + robotSerialNumber(),
@@ -99,11 +109,11 @@ function callHomeEndpoint() {
     "false",
     "filename.png",
     "application/json",
-    "_ServerCheck" // Name of the callback function
+    "_RegisterRobotEndpoint" // Name of the callback function
   );
 }
 
-function _ServerCheck(data) {
+function _RegisterRobotEndpoint(data) {
   const status = data.Status;
 
   if (status === 3) {
@@ -124,7 +134,7 @@ function _ServerCheck(data) {
     misty.Speak("Connected to the Server");
     setupSkill();
   } else {
-    // If fail -> retry to call the home endpoint.
+    // If fail, retry after 10 seconds
     misty.Debug("Error!");
     misty.Debug(data.ErrorMessage);
     misty.Speak("Failed to connect to the server, retrying in 10 seconds");
@@ -132,18 +142,8 @@ function _ServerCheck(data) {
   }
 }
 
-function feedbackPending() {
-  publishState("PENDING");
-  misty.Speak(
-    "Robot location is not set. Please use the administrator app to set the location." +
-      "Retrying in 10 seconds."
-  );
-  misty.ChangeLED(255, 0, 0);
-  misty.DisplayText("Set robot location in app");
-}
-
 function _RetryConnection() {
-  callHomeEndpoint();
+  callRegisterRobotEndpoint();
 }
 
 function setupSkill() {
@@ -187,16 +187,17 @@ function _Heartbeat(data) {
 
 function _OnUserCloseBy({ closeBy, distance }) {
   if (closeBy) {
-    // Set state
+    // Save state locally
     personNearby(true);
 
-    // Feedback to user
+    // Greet user and display instruction
     greetUser();
     feedbackDetectedPerson();
 
-    // Give instruction to the user.
+    // Give instruction to the user verbally.
     misty.Speak("Please show your check-in certificate", true);
 
+    // Listen for cell phone detection events.
     misty.AddPropertyTest(
       "OnCellPhone",
       "Description",
@@ -207,14 +208,19 @@ function _OnUserCloseBy({ closeBy, distance }) {
     misty.AddReturnProperty("OnCellPhone", "Description");
     misty.AddReturnProperty("OnCellPhone", "imageLocationBottom");
     misty.RegisterEvent("OnCellPhone", "ObjectDetection", 10, true);
+
+    // Starts object detection.
     misty.StartObjectDetector(0.7, 0, 15);
     phoneDetectionLock(false);
   } else {
-    // Set state
+    // Save state locally
     personNearby(false);
 
+    // Stop listening and stop detection.
     misty.UnregisterEvent("OnCellPhone");
     misty.StopObjectDetector();
+
+    // Display idle state.
     feedbackIdle();
   }
 }
@@ -222,19 +228,22 @@ function _OnUserCloseBy({ closeBy, distance }) {
 function _OnCellPhone(data) {
   const [name, bboxBottom] = data.AdditionalResults;
 
+  // Always save the bottom position of the cell phone
+  misty.Debug(name + ": " + bboxBottom);
+  misty.Set("bottom", bboxBottom);
+
   if (!phoneDetectionLock()) {
-    misty.Debug(name + ": " + bboxBottom);
-    misty.Set("bottom", bboxBottom);
+    // Latch on the first call
     phoneDetectionLock(true);
   } else {
-    // Update the bottom
-    misty.Debug(name + ": " + bboxBottom);
-    misty.Set("bottom", bboxBottom);
     return;
   }
 
+  // Ask user to hold steady
   misty.Speak("Hold steady", 1, 1, "default", true);
   misty.DisplayText("Hold steady...");
+
+  // Wait for 2 seconds
   misty.RegisterTimerEvent("OnTakePicture", 2000, false);
 }
 
@@ -265,7 +274,7 @@ function _OnTouch(data) {
 function adjustHeadToPhone() {
   // Get latest bottom position of phone
   const bottom = misty.Get("bottom");
-  // Ideally, the bottom of the cell phone is at 340
+  // Ideally, the bottom of the cell phone is at 310
   const idealBottom = 310;
   // Calculate the actual distance to the ideal.
   // This is the amount of distance Misty's head need to move.
@@ -329,6 +338,7 @@ function _TakePicture(data) {
 }
 
 function sendTraceTogetherImage(base64) {
+  // Send POST request to server
   misty.SendExternalRequest(
     "POST",
     _params.baseUrl + "/trace-together/verify",
@@ -353,6 +363,7 @@ function _TraceTogetherResult(data) {
   misty.ChangeLED(0, 0, 0);
   misty.DisplayImage("e_DefaultContent.jpg");
 
+  // Handle unexpected error if any
   if (data.Status !== 3) {
     misty.Speak("Server error! Please contact administrator.");
     return;
@@ -496,7 +507,7 @@ function _OnTraceTogetherFeedbackEnd(data) {
 }
 
 function greetUser() {
-  misty.DisplayText("")
+  misty.DisplayText("");
   misty.PlayAudio("s_PhraseHello.wav", 10);
   misty.DisplayImage("e_Admiration.jpg");
   misty.MoveArm("right", -90, 100);
