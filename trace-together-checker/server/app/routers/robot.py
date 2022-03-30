@@ -72,20 +72,25 @@ class UpdateRobotPayload(BaseModel):
     location: Optional[str]
     state: Optional[RobotState]
 
+
 class HeartbeatPayload(BaseModel):
     serial: str
 
 
 @router.post('/heartbeat')
 async def heartbeat(payload: HeartbeatPayload):
+    # Process hearbeat
     serial = payload.serial
     restart_heartbeat_timer(serial)
     print(f'Heartbeat for {serial}')
 
-    return {
-        'heartbeat': True,
-        'serial': serial
-    }
+    # Fetch the latest robot data
+    repo = RobotRepository()
+    robot = repo.get_by_serial(serial)
+
+    # Return the latest data to the robot
+    return robot.to_json()
+
 
 @router.post("/{serial}")
 async def update_robot(serial: str, payload: UpdateRobotPayload):

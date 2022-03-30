@@ -21,6 +21,10 @@ function personNearby(nearby) {
   return getOrSetState("person-nearby", nearby);
 }
 
+function assignedLocation(location) {
+  return getOrSetState("location", location, true);
+}
+
 function publishState(state) {
   misty.SendExternalRequest(
     "POST",
@@ -81,6 +85,31 @@ misty.SetTextDisplaySettings(
   480,
   40
 );
+
+// Set the location display
+misty.SetTextDisplaySettings(
+  "Location",
+  false,
+  false,
+  true,
+  1,
+  20,
+  400,
+  true,
+  "Center",
+  "Top",
+  "Oblique",
+  255,
+  255,
+  255,
+  480,
+  60
+);
+
+// Display the assigned location
+function displayLocation(location) {
+  misty.DisplayText("\n📍 " + location, "Location");
+}
 
 feedbackIdle();
 // Fetch information of the robot.
@@ -181,8 +210,18 @@ function _Heartbeat(data) {
     "false",
     "false",
     "filename.png",
-    "application/json"
+    "application/json",
+    "_OnHeartbeatResponse"
   );
+}
+
+function _OnHeartbeatResponse(data) {
+  const status = data.Status;
+
+  if (status !== 3) return;
+
+  const location = JSON.parse(data.Result.ResponseObject.Data)["location"];
+  displayLocation(location);
 }
 
 function _OnUserCloseBy({ closeBy, distance }) {
@@ -275,7 +314,7 @@ function adjustHeadToPhone() {
   // Get latest bottom position of phone
   const bottom = misty.Get("bottom");
   // Ideally, the bottom of the cell phone is at 310
-  const idealBottom = 310;
+  const idealBottom = 320;
   // Calculate the actual distance to the ideal.
   // This is the amount of distance Misty's head need to move.
   const verticalDistance = idealBottom - bottom;
