@@ -60,10 +60,3 @@ def test_update_location_sets_to_uppercase(repo):
     robot = repo.update_location(robots[0]['serial'], location)
 
     assert robot.location == expected_location and robot.location.isupper()
-
-
-def test_update_location_first_time_sets_state_to_idle(repo):
-    repo.update_state(robots[0]['serial'], RobotState.PENDING)
-    robot = repo.update_location(robots[0]['serial'], 'something')
-
-    assert robot.current_state == RobotState.IDLE

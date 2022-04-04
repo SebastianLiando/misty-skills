@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 from .mongo import MongoRepository, DEFAULT_CLIENT, DB_NAME
 from pymongo import MongoClient, ASCENDING
-from dependencies import Singleton
+from .dependencies import Singleton
 
 
 class RobotState(Enum):

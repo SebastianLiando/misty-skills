@@ -1,6 +1,6 @@
 from typing import Optional
 from .mongo import MongoRepository
-from dependencies import Singleton
+from .dependencies import Singleton
 
 from dataclasses import dataclass
 from datetime import datetime

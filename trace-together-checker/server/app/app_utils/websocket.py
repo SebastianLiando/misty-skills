@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Set
 from fastapi import WebSocket
 import json
-from dependencies import Singleton
+from database.dependencies import Singleton
 from database.robot import Robot
 from database.verification import Verification
 

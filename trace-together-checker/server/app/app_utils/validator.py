@@ -1,12 +1,30 @@
 import re
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 from fuzzywuzzy import fuzz
+
+
+def _combine_adjacent_lines(ocr: str) -> List[str]:
+    result = []
+    tmp = ''
+
+    lines = ocr.split("\n")
+    for line in lines:
+        if line != '':
+            tmp += line + " "
+        else:
+            if tmp != '':
+                result.append(tmp.strip())
+            tmp = ''
+
+    return result
 
 
 def is_location_valid(ocr: str, actual: str, threshold=50) -> Tuple[bool, str]:
     """Returns `true` if the location is relatively similar to the actual location."""
-    for line in ocr.split('\n'):
+    lines = _combine_adjacent_lines(ocr)
+
+    for line in lines:
         # Remove whitespaces
         cleaned = line.strip()
 
