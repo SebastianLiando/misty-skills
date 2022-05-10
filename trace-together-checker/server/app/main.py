@@ -1,12 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import robot, trace_together, websocket
+from routers import robot, trace_together, websocket, info_session
 import uvicorn
 
 app = FastAPI()
 app.include_router(robot.router)
 app.include_router(trace_together.router)
 app.include_router(websocket.router)
+app.include_router(info_session.router)
 
 # Setup CORS
 app.add_middleware(
