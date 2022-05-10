@@ -2,7 +2,7 @@
   "Name": "TraceTogetherChecker",
   "UniqueId": "b11c6dfc-f98b-42fa-a665-c6f13a854749",
   "Description": "My skill is amazing!",
-  "StartupRules": ["Startup", "Robot"],
+  "StartupRules": ["Manual", "Robot"],
   "Language": "javascript",
   "BroadcastMode": "verbose",
   "TimeoutInSeconds": 600,

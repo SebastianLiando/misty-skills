@@ -373,7 +373,7 @@ function _TakePicture(data) {
   if (data.Status === 3) {
     // If successful, send the image to server.
     const result = data.Result;
-    sendTraceTogetherImage(result.Base64);
+    sendImage(result.Base64);
   } else {
     // Handle error if any.
     misty.Debug("Failed to take picture!");
@@ -381,7 +381,7 @@ function _TakePicture(data) {
   }
 }
 
-function sendTraceTogetherImage(base64) {
+function sendImage(base64) {
   // Send POST request to server
   misty.SendExternalRequest(
     "POST",

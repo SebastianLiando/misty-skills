@@ -2,7 +2,6 @@ from app_utils.validator import is_check_in, is_safe_entry, is_date_valid, is_lo
 from app_utils.detector import detect_mobile_phone
 import base64
 import os
-from io import BytesIO
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
@@ -43,11 +42,6 @@ async def get_tt_image(image_id: str, file_name: str):
         raise HTTPException(404)
 
     return FileResponse(path)
-
-
-def decode_base64(base64_image: str) -> BytesIO:
-    decoded_bytes = base64.b64decode(base64_image)
-    return BytesIO(decoded_bytes)
 
 
 class VerificationPayload(BaseModel):
