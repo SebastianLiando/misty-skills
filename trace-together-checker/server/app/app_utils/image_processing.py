@@ -1,4 +1,5 @@
 import os
+import shutil
 from typing import Any, Tuple
 import cv2
 import numpy as np
@@ -42,6 +43,11 @@ def save_image(image, image_id: str, name: str):
 
     cv2.imwrite(path, image)
     print(f'Image written to: {path}')
+
+
+def remove_images(image_id: str):
+    path = get_trace_together_image_folder(image_id)
+    shutil.rmtree(path, ignore_errors=True)
 
 
 def resize_image(image, width=None, height=None, inter=cv2.INTER_AREA):

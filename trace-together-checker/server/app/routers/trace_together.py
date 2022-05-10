@@ -7,10 +7,12 @@ from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
-from app_utils.image_processing import get_trace_together_image_path, load_image, save_image, resize_image, crop_bbox, color_correct, get_green_ratio, unsharp_mask, read_string_in_image
+from app_utils.image_processing import get_trace_together_image_path, remove_images, load_image, save_image, resize_image, crop_bbox, color_correct, get_green_ratio, unsharp_mask, read_string_in_image
 from app_utils.websocket import WSConnectionManager, TOPIC_VERIFICATION
 from database.robot import RobotRepository
 from database.verification import Verification, VerificationRepository
+
+from bson.objectid import ObjectId
 
 router = APIRouter(
     prefix="/trace-together",
@@ -70,16 +72,25 @@ async def check_trace_together(data: VerificationPayload):
         raise HTTPException(
             400, 'This robot has not been assigned a location!')
 
+    manager = WSConnectionManager()
     assigned_location = robot.location
+    item_id = ObjectId()  # Generate MongoDB document id
+    item_id_str = str(item_id)
 
     # Load image to memory
     img_bytes = base64.b64decode(data.image)
     original_image = load_image(img_bytes)
 
+    # Save received image
+    save_image(original_image, item_id_str, 'original.jpg')
+    thumbnail = resize_image(original_image, height=512)
+    save_image(thumbnail, item_id_str, 'thumbnail.jpg')
+
     # Try to detect mobile phone
     detected_phone = detect_mobile_phone(original_image)
 
     if detected_phone == None:
+        remove_images(item_id_str)
         raise HTTPException(
             status_code=404, detail="Mobile phone not detected")
 
@@ -88,7 +99,10 @@ async def check_trace_together(data: VerificationPayload):
     ymin, ymax = detected_phone['ymin'], detected_phone['ymax']
 
     cropped = crop_bbox(original_image, xmin, xmax, ymin, ymax)
+    save_image(cropped, item_id_str, 'cropped.jpg')
+
     enhanced = unsharp_mask(cropped, round=4)
+    save_image(enhanced, item_id_str, 'enhanced.jpg')
 
     # Get the text in the image
     ocr_result = read_string_in_image(enhanced)
@@ -97,6 +111,8 @@ async def check_trace_together(data: VerificationPayload):
     # Check vaccination status
     color_corrected = color_correct(cropped)
     green_ratio, mask = get_green_ratio(color_corrected, diff=50)
+    save_image(mask, item_id_str, 'mask.jpg')
+
     print(green_ratio)
     vaccinated = green_ratio > 0.35
 
@@ -114,7 +130,7 @@ async def check_trace_together(data: VerificationPayload):
         ocr_result, assigned_location)
 
     verification = Verification(
-        id='',
+        id=item_id,
         robot_serial=data.serial,
         created_at=None,  # Will be replaced after persisting to database,
         raw_ocr=ocr_result,
@@ -131,18 +147,7 @@ async def check_trace_together(data: VerificationPayload):
     verification_repo = VerificationRepository()
     verification: Verification = verification_repo.save(verification)
 
-    # Save images
-    save_image(original_image, verification.id, 'original.jpg')
-    save_image(cropped, verification.id, 'cropped.jpg')
-    save_image(enhanced, verification.id, 'enhanced.jpg')
-    save_image(mask, verification.id, 'mask.jpg')
-
-    # Save thumbnail image
-    thumbnail = resize_image(original_image, height=512)
-    save_image(thumbnail, verification.id, 'thumbnail.jpg')
-
     # Notify subscribers
-    manager = WSConnectionManager()
     await manager.publish_subscription_data(TOPIC_VERIFICATION, [verification])
 
     response = verification.to_json()

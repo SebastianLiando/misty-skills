@@ -73,6 +73,6 @@ function _OnReset(data) {
   misty.DisplayImage("e_ContentLeft.jpg");
   misty.MoveArm("right", 50, 50, 0.2);
   misty.MoveHead(0, 0, 0);
-  misty.ChangeLED(255, 255, 255);
+  misty.ChangeLED(0, 0, 0);
   misty.DisplayText("");
 }

@@ -41,6 +41,11 @@ function publishState(state) {
   );
 }
 
+function feedbackConnecting() {
+  misty.DisplayText(_params.baseUrl);
+  misty.ChangeLED(255, 255, 0);
+}
+
 function feedbackIdle() {
   publishState("IDLE");
   misty.DisplayText("Idle...");
@@ -111,7 +116,6 @@ function displayLocation(location) {
   misty.DisplayText("\n📍 " + location, "Location");
 }
 
-feedbackIdle();
 // Fetch information of the robot.
 misty.GetDeviceInformation();
 
@@ -128,6 +132,7 @@ function _GetDeviceInformation(data) {
  * The URL is specified in the parameter of the skill.
  */
 function callRegisterRobotEndpoint() {
+  feedbackConnecting();
   misty.SendExternalRequest(
     "GET",
     _params.baseUrl + "/robot/" + robotSerialNumber(),

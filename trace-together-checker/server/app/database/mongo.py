@@ -48,6 +48,7 @@ class MongoRepository():
             updated_id = self._parse_id(data.pop('_id'))
             self.collection.update_one({'_id': updated_id},
                                        update={"$set": data},
+                                       upsert=True,
                                        )
 
         return self.get(updated_id)
