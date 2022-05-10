@@ -1,0 +1,14 @@
+{
+  "Name": "ObjectDetectorTest",
+  "UniqueId": "88c1e61d-0f27-4923-9e02-d7ac227c5831",
+  "Description": "My skill is amazing!",
+  "StartupRules": ["Manual", "Robot"],
+  "Language": "javascript",
+  "BroadcastMode": "verbose",
+  "TimeoutInSeconds": 600,
+  "CleanupOnCancel": true,
+  "WriteToLog": false,
+  "Parameters": {
+    "target": "cell phone"
+  }
+}
