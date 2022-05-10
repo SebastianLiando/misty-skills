@@ -4,10 +4,10 @@ import json
 import torch
 
 # Object detector
-PRETRAINED_MODEL = 'yolov5n'
-MIN_CONFIDENCE = 0.1
+PRETRAINED_MODEL = 'yolov5l'
+MIN_CONFIDENCE = 0.5
 
-model = torch.hub.load('ultralytics/yolov5', PRETRAINED_MODEL)
+model = torch.hub.load('ultralytics/yolov5', PRETRAINED_MODEL, pretrained=True)
 model.conf = MIN_CONFIDENCE
 
 
@@ -27,6 +27,9 @@ def detect_mobile_phone(image) -> Optional[dict]:
 
     # Return the first result
     if len(results) > 0:
+        if len(results) > 1:
+            print("Multiple cell phone detected! Result might not be accurate")
+
         return results[0]
     else:
         return None
