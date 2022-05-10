@@ -19,6 +19,7 @@ class MessageTypes(Enum):
 
 TOPIC_ROBOT = 'ROBOT'
 TOPIC_VERIFICATION = 'VERIFICATION'
+TOPIC_CONFIRMATION_EMAIL = 'CONFIRMATION_EMAIL'
 
 
 class AppEncoder(json.JSONEncoder):
@@ -63,7 +64,7 @@ class WSConnectionManager(metaclass=Singleton):
     def _json_to_str(self, body) -> str:
         return json.dumps(body, cls=AppEncoder)
 
-    async def publish(self, topic: str, body, client = None):
+    async def publish(self, topic: str, body, client=None):
         message = self._json_to_str(body)
 
         # If targeted to specific client
@@ -75,10 +76,10 @@ class WSConnectionManager(metaclass=Singleton):
         for subscriber in self.subscriptions[topic]:
             await self.send_personal_message(message, subscriber)
 
-    async def publish_subscription_data(self, topic: str, data: list, client = None):
+    async def publish_subscription_data(self, topic: str, data: list, client=None):
         """Publishes subscription data for the given topic to all subscribers. 
         If the client is given, send only to the given client.
-        
+
         Args:
             topic (str): The subscription topic.
             data (list): The data to be sent.
