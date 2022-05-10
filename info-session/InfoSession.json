@@ -1,0 +1,14 @@
+{
+  "Name": "InfoSession",
+  "UniqueId": "c0e8f00d-c50f-4db9-ae99-6261a0e53ec1",
+  "Description": "Checks confirmation email for SCSE Info Session@NBS",
+  "StartupRules": ["Manual", "Robot"],
+  "Language": "javascript",
+  "BroadcastMode": "verbose",
+  "TimeoutInSeconds": 6000,
+  "CleanupOnCancel": true,
+  "WriteToLog": false,
+  "Parameters": {
+    "baseUrl": "http://192.168.137.1:8000"
+  }
+}
