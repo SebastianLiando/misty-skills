@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -110,11 +111,13 @@ async def verify_check_in_email(data: InfoSessionPayload):
         raise HTTPException(404, f"Full name {fullname} not found!")
 
     # Update database
-    confirmation.confirmed = True
-    confirmation.confirmed_by = robot_serial
-    confirmation = confirm_repo.save(confirmation)
+    if not confirmation.confirmed:
+        confirmation.confirmed = True
+        confirmation.confirmed_by = robot_serial
+        confirmation.confirmed_at = datetime.utcnow()
+        confirmation = confirm_repo.save(confirmation)
 
-    # Notify subscribers
-    await manager.publish_subscription_data(TOPIC_CONFIRMATION_EMAIL, [confirmation])
+        # Notify subscribers
+        await manager.publish_subscription_data(TOPIC_CONFIRMATION_EMAIL, [confirmation])
 
     return confirmation.to_json()

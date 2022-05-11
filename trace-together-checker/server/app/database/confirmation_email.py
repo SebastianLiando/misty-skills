@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
-from typing import Optional
+from datetime import datetime
+from typing import List, Optional
 from .dependencies import Singleton
 from .mongo import MongoRepository
 
@@ -10,12 +11,14 @@ class ConfirmationEmail:
     fullname: str
     confirmed: bool = False
     confirmed_by: Optional[str] = None
+    confirmed_at: Optional[datetime] = None
 
     def to_json(self) -> dict:
         json = {
             'fullname': self.fullname,
             'confirmed': self.confirmed,
-            'confirmed_by': self.confirmed_by
+            'confirmed_by': self.confirmed_by,
+            'confirmed_at': self.confirmed_at,
         }
 
         if self.id != '':
@@ -29,7 +32,8 @@ class ConfirmationEmail:
             id=str(json['_id']),
             fullname=json['fullname'],
             confirmed=json['confirmed'],
-            confirmed_by=json['confirmed_by']
+            confirmed_by=json.get('confirmed_by'),
+            confirmed_at=json.get('confirmed_at'),
         )
 
 
@@ -37,6 +41,9 @@ class ConfirmEmailRepository(MongoRepository, metaclass=Singleton):
     @property
     def collection_name(self) -> str:
         return "confirmation-emails"
+
+    def list_confirmed(self) -> List[ConfirmationEmail]:
+        return self.list({'confirmed': True})
 
     def to_json(self, item: ConfirmationEmail):
         return item.to_json()

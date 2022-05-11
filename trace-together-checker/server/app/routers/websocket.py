@@ -1,7 +1,8 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from app_utils.websocket import WSConnectionManager, MessageTypes, TOPIC_ROBOT, TOPIC_VERIFICATION
+from app_utils.websocket import WSConnectionManager, MessageTypes, TOPIC_ROBOT, TOPIC_VERIFICATION, TOPIC_CONFIRMATION_EMAIL
 from database.robot import RobotRepository
 from database.verification import VerificationRepository
+from database.confirmation_email import ConfirmEmailRepository
 import json
 
 manager = WSConnectionManager()
@@ -28,6 +29,10 @@ async def process_topic_data(client: WebSocket, message_type: str, data: dict):
             repo = VerificationRepository()
             verifications = repo.list()
             await manager.publish_subscription_data(TOPIC_VERIFICATION, verifications, client=client)
+        elif topic == TOPIC_CONFIRMATION_EMAIL:
+            repo = ConfirmEmailRepository()
+            all_confirmed = repo.list_confirmed()
+            await manager.publish_subscription_data(TOPIC_CONFIRMATION_EMAIL, all_confirmed, client=client)
     elif parsed == MessageTypes.UNSUBSCRIBE:
         topic = data['topic'].upper()
         manager.unsubscribe(topic, client)
