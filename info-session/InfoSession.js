@@ -17,7 +17,15 @@ function phoneDetectionLock(locked) {
 function personNearby(nearby) {
   return getOrSetState("person-nearby", nearby);
 }
-// -------------------
+
+// ------ Utility functions
+function speakPromptly(message, speechId = null) {
+  misty.Speak(message, 1, 1, "default", true, speechId);
+}
+
+function speakFinalMessage(message) {
+  speakPromptly(message, "trace-together-feedback-speech");
+}
 
 // ----- Robot Feedbacks
 function defaultStance() {
@@ -29,6 +37,7 @@ function defaultStance() {
 
 function greetUser() {
   misty.DisplayText("");
+  misty.ChangeLED(251, 72, 196);
   misty.PlayAudio("s_PhraseHello.wav", 10);
   misty.DisplayImage("e_Admiration.jpg");
   misty.MoveArm("right", -90, 100);
@@ -54,18 +63,33 @@ function feedbackIdle() {
 function feedbackDetectedPerson() {
   publishState("ENGAGING");
   misty.DisplayText("Show confirmation email");
-  misty.TransitionLED(0, 0, 0, 0, 255, 0, "Breathe", 1000);
+  misty.Speak("Please show your confirmation email");
+  misty.TransitionLED(0, 0, 0, 0, 255, 0, "Breathe", 2000);
 }
 
-function feedbackReject(message) {
+function feedbackReject() {
   publishState("REJECT");
   misty.DisplayImage("e_Sadness.jpg");
   misty.ChangeLED(255, 0, 0);
-  misty.Speak(message, 1, 1, "default", false, getTTFeedbackSpeechId());
+
+  // Shake head
   misty.MoveHead(0, 0, 20);
   misty.Pause(500);
   misty.MoveHead(0, 0, -20);
   misty.Pause(500);
+  misty.MoveHead(0, 0, 0);
+}
+
+function feedbackAccept(fullname) {
+  publishState("ACCEPT");
+  misty.DisplayImage("e_Admiration.jpg");
+  misty.DisplayText("Welcome, " + fullname);
+  misty.ChangeLED(0, 255, 0);
+
+  // Bowing gesture
+  misty.MoveArms(20, 20, 100, 100);
+  misty.MoveHead(20, 0, 0);
+  misty.Pause(1000);
   misty.MoveHead(0, 0, 0);
 }
 
@@ -95,6 +119,26 @@ function startUp() {
   // Clear everything
   misty.DisplayText("");
   misty.DisplayImage("e_DefaultContent.jpg");
+
+  // Adjust the text layer, so that texts are in the bottom.
+  misty.SetTextDisplaySettings(
+    null,
+    false,
+    false,
+    true,
+    1,
+    33,
+    400,
+    true,
+    "Center",
+    "Bottom",
+    "Normal",
+    255,
+    255,
+    255,
+    480,
+    40
+  );
 
   misty.GetDeviceInformation();
 }
@@ -222,9 +266,6 @@ function _OnUserCloseBy({ closeBy }) {
     // Greet user and display instruction
     greetUser();
     feedbackDetectedPerson();
-
-    // Give instruction to the user verbally.
-    misty.Speak("Please show your confirmation email");
 
     // Listen for cell phone detection events.
     misty.AddPropertyTest(
@@ -390,18 +431,25 @@ function _ConfirmEmailResult(data) {
   if (errorDetail) {
     publishState("REJECT");
     misty.Debug(errorDetail);
-    feedbackReject(errorDetail);
+
+    let errorSpeech = "";
+    if (errorDetail.includes("Mobile phone")) {
+      errorSpeech += "Sorry, I can't find your phone.";
+    } else if (errorDetail.includes("Email salutation")) {
+      errorSpeech += "Sorry, I can't read your name.";
+    } else if (errorDetail.includes("Full name")) {
+      errorSpeech += "Sorry, your name is not registered.";
+    }
+    errorSpeech += "Please try again or check-in manually.";
+    speakFinalMessage(errorSpeech);
+    feedbackReject();
     return;
   }
 
-  misty.Speak(
-    "Yay! No detection error",
-    1,
-    1,
-    "default",
-    false,
-    getTTFeedbackSpeechId()
-  );
+  // Welcome user
+  const fullname = response["fullname"];
+  speakFinalMessage(`Hi ${fullname}, welcome to SCSE information session 2022`);
+  feedbackAccept(fullname);
 }
 
 function _OnTraceTogetherFeedbackEnd(/* data*/) {

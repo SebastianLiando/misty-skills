@@ -87,7 +87,7 @@ function _OnFaceRecognition(data) {
   }
 }
 
-function _OnTimeout(data) {
+function _OnTimeout(/* data */) {
   // Set the state to false.
   isUserCloseBy(false);
 

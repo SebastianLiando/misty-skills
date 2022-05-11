@@ -5,6 +5,7 @@ import json
 from database.dependencies import Singleton
 from database.robot import Robot
 from database.verification import Verification
+from database.confirmation_email import ConfirmationEmail
 
 from enum import Enum
 from collections import defaultdict
@@ -28,7 +29,7 @@ class AppEncoder(json.JSONEncoder):
             return o.isoformat()
         elif isinstance(o, Enum):
             return o.value
-        elif isinstance(o, (Robot, Verification)):
+        elif isinstance(o, (Robot, Verification, ConfirmationEmail)):
             return o.to_json()
 
         return super().default(o)

@@ -22,12 +22,12 @@ def extract_name(ocr: str) -> Optional[str]:
 
     for line in lines:
         if "dear " in line.lower():
-            parts = line.split("dear ")
-            name = parts[1]
+            # Remove "dear "
+            name = line[5:]
             name = name.strip()
             name = name.strip(",")
 
-        return name
+            return name
 
     return None
 
@@ -73,7 +73,7 @@ async def verify_check_in_email(data: InfoSessionPayload):
     cropped = crop_bbox(original_image, xmin, xmax, ymin, ymax)
     save_image(cropped, item_id_str, 'cropped.jpg')
 
-    enhanced = unsharp_mask(cropped, round=4)
+    enhanced = unsharp_mask(cropped, round=3)
     save_image(enhanced, item_id_str, 'enhanced.jpg')
 
     # Get the text in the image
@@ -81,13 +81,16 @@ async def verify_check_in_email(data: InfoSessionPayload):
     print(ocr_result.split('\n'))
 
     # Extract the name, normalize it to lowercase
-    fullname = extract_name(ocr_result).lower()
+    fullname = extract_name(ocr_result)
 
     # TODO: if fullname is null, maybe name is dark mode?
 
     # If fullname is not detected at all
     if fullname == None:
         raise HTTPException(404, "Email salutation not detected!")
+
+    # Normalize fullname
+    fullname = fullname.lower()
 
     # Find name from database
     confirm_repo = ConfirmEmailRepository()
