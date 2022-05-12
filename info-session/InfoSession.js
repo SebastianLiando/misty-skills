@@ -63,7 +63,7 @@ function feedbackIdle() {
 function feedbackDetectedPerson() {
   publishState("ENGAGING");
   misty.DisplayText("Show confirmation email");
-  misty.Speak("Please show your confirmation email");
+  misty.Speak("Hello! Please show your confirmation email on the phone");
   misty.TransitionLED(0, 0, 0, 0, 255, 0, "Breathe", 2000);
 }
 
@@ -436,7 +436,7 @@ function _ConfirmEmailResult(data) {
     if (errorDetail.includes("Mobile phone")) {
       errorSpeech += "Sorry, I can't find your phone.";
     } else if (errorDetail.includes("Email salutation")) {
-      errorSpeech += "Sorry, I can't read your name.";
+      errorSpeech += "Sorry, I can't find your name. Please check your email.";
     } else if (errorDetail.includes("Full name")) {
       errorSpeech += "Sorry, your name is not registered.";
     }
