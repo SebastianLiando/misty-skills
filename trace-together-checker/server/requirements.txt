@@ -1,0 +1,11 @@
+pytorch
+pytesseract
+fastapi
+uvicorn
+
+numpy
+matplotlib
+
+fuzzywuzzy
+pymongo
+asyncio
