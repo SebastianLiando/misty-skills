@@ -9,6 +9,7 @@ from .mongo import MongoRepository
 class ConfirmationEmail:
     id: str
     fullname: str
+    table: str
     confirmed: bool = False
     confirmed_by: Optional[str] = None
     confirmed_at: Optional[datetime] = None
@@ -17,6 +18,7 @@ class ConfirmationEmail:
         json = {
             'fullname': self.fullname,
             'confirmed': self.confirmed,
+            'table': self.table,
             'confirmed_by': self.confirmed_by,
             'confirmed_at': self.confirmed_at,
         }
@@ -31,6 +33,7 @@ class ConfirmationEmail:
         return ConfirmationEmail(
             id=str(json['_id']),
             fullname=json['fullname'],
+            table=json['table'],
             confirmed=json['confirmed'],
             confirmed_by=json.get('confirmed_by'),
             confirmed_at=json.get('confirmed_at'),
