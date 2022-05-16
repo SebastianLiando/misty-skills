@@ -114,7 +114,7 @@ function publishState(state) {
 function startUp() {
   misty.UnregisterAllEvents();
   misty.EnableCameraService();
-  misty.SetDefaultVolume(20);
+  misty.SetDefaultVolume(80);
 
   // Clear everything
   misty.DisplayText("");
@@ -229,7 +229,7 @@ function _OnTouch(data) {
   phoneDetectionLock(true);
 
   // Tilt head up a bit
-  misty.MoveHead(-20, 0, 0);
+  misty.MoveHead(-10, 0, 0);
   misty.Pause(1000);
 
   checkTraceTogether();
@@ -331,7 +331,7 @@ function adjustHeadToPhone() {
   // Get latest bottom position of phone
   const bottom = misty.Get("bottom");
   // Ideally, the bottom of the cell phone is at 310
-  const idealBottom = 320;
+  const idealBottom = 300;
   // Calculate the actual distance to the ideal.
   // This is the amount of distance Misty's head need to move.
   const verticalDistance = idealBottom - bottom;
@@ -448,7 +448,11 @@ function _ConfirmEmailResult(data) {
 
   // Welcome user
   const fullname = response["fullname"];
-  speakFinalMessage(`Hi ${fullname}, welcome to SCSE information session 2022`);
+  const table = response["table"];
+  speakFinalMessage(
+    `Hi ${fullname}, welcome to SCSE information session 2022. Your table number is ${table}. Please collect your goodie bag.`
+  );
+  misty.DisplayText(table);
   feedbackAccept(fullname);
 }
 
