@@ -1,46 +1,27 @@
 # TraceTogether Checking Server
 
-This server is required for the Misty skill to check trace together check-in certificate. The server works offline.
+[![Link to Report](https://img.shields.io/badge/Report-DR%20NTU-blueviolet)](https://hdl.handle.net/10356/157337)
+
+This server is required for the Misty skill to check trace together check-in certificate. After the first run, the server can run without making external network request.
+
+This skill is the server component for my final year project for my Bachelors in Computer Science in Nanyang Technological University. There are 2 other components: [the robot](https://github.com/SebastianLiando/misty-skills/tree/main/trace-together-checker/skill) and [the Flutter application](https://github.com/SebastianLiando/misty-tracer). Please find the detailed report [here](https://hdl.handle.net/10356/157337).
 
 ## Requirements
 
-- [Swig](http://www.swig.org/)
-- [Microsoft Visual C++ Build Tools 14](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
-- `pocketsphinx` Python module (requires both the requirements above to be installed)
-- Tesseract OCR and pytesseract
+- Python 3.7 or above
+- Tesseract OCR
+- MongoDB
 
-## Endpoints
+## How to Run
 
-### POST `/speech`
+Install the Python packages in the requirements file.
 
-Used to do speech recognition.
+```
+pip install -r requirements.txt
+```
 
-#### Request Body
+Run the server.
 
-| Param   | Type     | Desc                             |
-| ------- | -------- | -------------------------------- |
-| `audio` | `String` | Base64 string of the audio file. |
-
-#### Response
-
-| Param    | Type     | Desc                   |
-| -------- | -------- | ---------------------- |
-| `speech` | `String` | The recognized speech. |
-
-### POST `/check`
-
-Used to check the trace together check-in certificate photo.
-
-#### Request Body
-
-| Param   | Type     | Desc                             |
-| ------- | -------- | -------------------------------- |
-| `image` | `String` | Base64 string of the image file. |
-
-#### Response
-
-| Param        | Type      | Desc                                                      |
-| ------------ | --------- | --------------------------------------------------------- |
-| `date_valid` | `Boolean` | `true` if the date is a valid date.                       |
-| `check_in`   | `Boolean` | `true` if it is a check-in certificate.                   |
-| `safe_entry` | `Boolean` | `true` if the certificate is a TraceTogether certificate. |
+```
+python app/main.py
+```
