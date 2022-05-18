@@ -1,8 +1,8 @@
 ## OnUserCloseBy
 
-This skill is used to get notified if there is any user close by to the robot. This is done by Misty's [trigger event API](https://docs.mistyrobotics.com/misty-ii/javascript-sdk/api-reference/#misty-triggerevent).
+This skill is used to notify other skills if there is any user close by to the robot. This is done by Misty's [trigger event API](https://docs.mistyrobotics.com/misty-ii/javascript-sdk/api-reference/#misty-triggerevent).
 
-> This skill only tells if there is any nearby user. It does not know how many users are nearby.
+> This skill only tells if there is any nearby user by face detection. It does not know how many users are nearby.
 
 ### Get Started
 
@@ -36,5 +36,5 @@ function _OnUserCloseBy({ closeBy, distance }) {
 
 | Name                | Data Type | Description                                                      |
 | ------------------- | --------- | ---------------------------------------------------------------- |
-| `distanceThreshold` | `number`  | How many centimeters is close by.                                |
+| `distanceThreshold` | `number`  | How many centimeters between Misty and the user is close by.     |
 | `timeoutMs`         | `number`  | How many milliseconds to define that user is no longer close by. |

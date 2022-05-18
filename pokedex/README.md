@@ -12,11 +12,3 @@ The data is retrieved from [PokeAPI](https://pokeapi.co/). To reduce network req
 
 ![Demo](Pokedex.gif)
 
-### Misty Features Demonstrated
-
-- Bump sensors
-- Custom events
-- Display animated GIF and text
-- LED flip flop using timer events
-- Network requests (REST API and file download)
-- Persistent storage
